@@ -16,8 +16,11 @@ pyyaml = "^6.0.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3" # Or a more recent compatible version
+pytest-cov = "^4.0.0"
 ruff = "^0.1.0" # For linting, as per Readme
 mypy = "^1.0" # For type checking, as per Readme
+pre-commit = "^3.6.0"
+types-PyYAML = "^6.0.0"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs-material = "^9.0.0"
@@ -29,3 +32,7 @@ graphql-codegen = "graphql_codegen.cli:main"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+# Ignore star imports in generated test output files
+extend-per-file-ignores = {"test/outputs/*/__init__.py" = ["F403"]}

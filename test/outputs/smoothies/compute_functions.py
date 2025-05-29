@@ -11,7 +11,7 @@ from smoothies.gen.auto import register_compute_fn
 def calc_calories(instance, field_name: str, meta: dict):
     """Calculate calories for an IngredientAmount based on grams and calories_per_gram."""
     from smoothies.gen.models import FloatParameter
-    
+
     if (
         not instance.ingredient
         or not instance.grams
@@ -21,6 +21,6 @@ def calc_calories(instance, field_name: str, meta: dict):
     ):
         # Handle cases where necessary data might be missing
         return FloatParameter(value=0.0)
-    
+
     calories = instance.ingredient.calories_per_gram.value * instance.grams.value
-    return FloatParameter(value=round(calories, 2)) 
+    return FloatParameter(value=round(calories, 2))

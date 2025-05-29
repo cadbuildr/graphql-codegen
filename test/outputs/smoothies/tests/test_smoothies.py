@@ -16,7 +16,6 @@ from smoothies.gen.models import (
 from smoothies.gen import auto as smoothies_auto
 
 # Import compute functions to register them
-import smoothies.compute_functions
 
 
 def test_smoothies_package_structure():

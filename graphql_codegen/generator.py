@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple
 from pydantic import BaseModel
 import json
-import pprint
 from jinja2 import Environment, FileSystemLoader
 
 from .config import load_config, get_output_path, CodegenConfig
@@ -49,17 +48,21 @@ class GenerationResult(BaseModel):
     error: Optional[str] = None
 
 
-def build_field_meta(field, config: CodegenConfig) -> Tuple[str, Optional[Dict[str, Any]], bool, bool]:
+def build_field_meta(
+    field, config: CodegenConfig
+) -> Tuple[str, Optional[Dict[str, Any]], bool, bool]:
     """
     Central helper to extract field metadata and determine requirements.
     Returns: (python_type, json_schema_extra, needs_compute, needs_expand)
     """
-    python_type = get_python_type(field.type_name, field.is_list, field.is_required, config)
-    
+    python_type = get_python_type(
+        field.type_name, field.is_list, field.is_required, config
+    )
+
     meta = {}
     needs_compute = False
     needs_expand = False
-    
+
     for directive in field.directives:
         if directive.name == "compute":
             meta["compute"] = {"fn": directive.args.get("fn")}
@@ -72,12 +75,14 @@ def build_field_meta(field, config: CodegenConfig) -> Tuple[str, Optional[Dict[s
             except json.JSONDecodeError:
                 meta["expand"] = {"into": into_value}
             needs_expand = True
-    
+
     json_schema_extra = meta if meta else None
     return python_type, json_schema_extra, needs_compute, needs_expand
 
 
-def collect_types(schema_info: SchemaInfo, config: CodegenConfig, for_stdout: bool = False) -> Tuple[List[TypeInfo], bool, bool, set]:
+def collect_types(
+    schema_info: SchemaInfo, config: CodegenConfig, for_stdout: bool = False
+) -> Tuple[List[TypeInfo], bool, bool, set]:
     """
     Central function to collect and process types data.
     Returns: (types_data, needs_computable_import, needs_expandable_import, imports_needed)
@@ -85,12 +90,12 @@ def collect_types(schema_info: SchemaInfo, config: CodegenConfig, for_stdout: bo
     types_data = []
     needs_computable_import = False
     needs_expandable_import = False
-    imports_needed = set()
+    imports_needed: set[str] = set()
 
     for type_info in schema_info.types:
         if type_info.name in [
             "Query",
-            "Mutation", 
+            "Mutation",
             "Subscription",
         ] or type_info.name.endswith("Input"):
             continue
@@ -144,7 +149,7 @@ def collect_types(schema_info: SchemaInfo, config: CodegenConfig, for_stdout: bo
             else:
                 # Object with no interfaces - inherit directly from BaseModel
                 base_classes.append("BaseModel")
-        
+
         if inherits_computable:
             base_classes.append("Computable")
         if inherits_expandable:
@@ -153,9 +158,11 @@ def collect_types(schema_info: SchemaInfo, config: CodegenConfig, for_stdout: bo
         # Process fields
         fields_data = []
         # Collect interface field names to avoid duplication
-        interface_field_names = set()
+        interface_field_names: set[str] = set()
         for interface_name in type_info.interfaces:
-            interface_type = next((t for t in schema_info.types if t.name == interface_name), None)
+            interface_type = next(
+                (t for t in schema_info.types if t.name == interface_name), None
+            )
             if interface_type:
                 interface_field_names.update(f.name for f in interface_type.fields)
 
@@ -164,18 +171,29 @@ def collect_types(schema_info: SchemaInfo, config: CodegenConfig, for_stdout: bo
             if field.name in interface_field_names:
                 continue
 
-            python_type, json_schema_extra, field_needs_compute, field_needs_expand = build_field_meta(field, config)
-            
+            (
+                python_type,
+                json_schema_extra,
+                field_needs_compute,
+                field_needs_expand,
+            ) = build_field_meta(field, config)
+
             # Handle forward references for stdout mode
             if for_stdout:
-                if field.type_name in [t.name for t in schema_info.types if t.name != type_info.name]:
-                    python_type = python_type.replace(field.type_name, f'"{field.type_name}"')
-                    
-            fields_data.append(FieldInfo(
-                name=field.name,
-                python_type=python_type,
-                json_schema_extra=json_schema_extra,
-            ))
+                if field.type_name in [
+                    t.name for t in schema_info.types if t.name != type_info.name
+                ]:
+                    python_type = python_type.replace(
+                        field.type_name, f'"{field.type_name}"'
+                    )
+
+            fields_data.append(
+                FieldInfo(
+                    name=field.name,
+                    python_type=python_type,
+                    json_schema_extra=json_schema_extra,
+                )
+            )
 
         # Handle type-level expansion
         expansion_spec = None
@@ -185,20 +203,24 @@ def collect_types(schema_info: SchemaInfo, config: CodegenConfig, for_stdout: bo
                 try:
                     # Parse JSON to validate and then re-serialize cleanly
                     into_dict = json.loads(into_value)
-                    expansion_spec = f"    __expansion__ = {json.dumps(into_dict, indent=4)}"
+                    expansion_spec = (
+                        f"    __expansion__ = {json.dumps(into_dict, indent=4)}"
+                    )
                 except json.JSONDecodeError:
                     # Fallback: use raw value
                     expansion_spec = f"    __expansion__ = {repr(into_value)}"
 
-        types_data.append(TypeInfo(
-            name=type_info.name,
-            base_classes=base_classes,
-            fields=fields_data,
-            expansion_spec=expansion_spec,
-            kind=type_info.kind,
-            interfaces=type_info.interfaces,
-            union_types=type_info.union_types if type_info.kind == "union" else [],
-        ))
+        types_data.append(
+            TypeInfo(
+                name=type_info.name,
+                base_classes=base_classes,
+                fields=fields_data,
+                expansion_spec=expansion_spec,
+                kind=type_info.kind,
+                interfaces=type_info.interfaces,
+                union_types=type_info.union_types if type_info.kind == "union" else [],
+            )
+        )
 
     return types_data, needs_computable_import, needs_expandable_import, imports_needed
 
@@ -213,7 +235,9 @@ def get_template_env() -> Environment:
 
 
 def generate_from_directory(
-    schema_dir: Path, verbose: bool = False, override_config: Optional[CodegenConfig] = None
+    schema_dir: Path,
+    verbose: bool = False,
+    override_config: Optional[CodegenConfig] = None,
 ) -> GenerationResult:
     """Generate Python package from GraphQL schema directory."""
     try:
@@ -226,7 +250,7 @@ def generate_from_directory(
             print(f"Configuration loaded: package={config.package}")
 
         if verbose:
-            print(f"Parsing GraphQL schema")
+            print("Parsing GraphQL schema")
 
         schema_info = load_and_parse_schema_with_config(schema_dir, config)
 
@@ -274,23 +298,54 @@ def generate_package_files(
     verbose: bool = False,
 ):
     """Generate the package files using templates."""
-    env = get_template_env()
 
     # Process types and gather template data
-    types_data, needs_computable_import, needs_expandable_import, imports_needed = collect_types(schema_info, config, for_stdout=False)
+    (
+        types_data,
+        needs_computable_import,
+        needs_expandable_import,
+        imports_needed,
+    ) = collect_types(schema_info, config, for_stdout=False)
 
     if config.flat_output:
         # Generate everything in a single file
-        generate_flat_output(output_path, config, types_data, schema_info, needs_computable_import, needs_expandable_import, imports_needed, verbose)
+        generate_flat_output(
+            output_path,
+            config,
+            types_data,
+            schema_info,
+            needs_computable_import,
+            needs_expandable_import,
+            imports_needed,
+            verbose,
+        )
     else:
         # Generate package structure
-        generate_package_output(output_path, config, types_data, schema_info, needs_computable_import, needs_expandable_import, imports_needed, verbose)
+        generate_package_output(
+            output_path,
+            config,
+            types_data,
+            schema_info,
+            needs_computable_import,
+            needs_expandable_import,
+            imports_needed,
+            verbose,
+        )
 
 
-def generate_flat_output(output_path: Path, config: CodegenConfig, types_data, schema_info, needs_computable_import, needs_expandable_import, imports_needed, verbose: bool):
+def generate_flat_output(
+    output_path: Path,
+    config: CodegenConfig,
+    types_data,
+    schema_info,
+    needs_computable_import,
+    needs_expandable_import,
+    imports_needed,
+    verbose: bool,
+):
     """Generate a single file output."""
     env = get_template_env()
-    
+
     # Use the shared flat template
     template = env.get_template("flat.py.j2")
     content = template.render(
@@ -300,17 +355,26 @@ def generate_flat_output(output_path: Path, config: CodegenConfig, types_data, s
         enums=schema_info.enums,
         additional_imports=list(imports_needed),
     )
-    
+
     output_file = output_path / f"{config.package}.py"
     output_file.parent.mkdir(parents=True, exist_ok=True)
     with open(output_file, "w") as f:
         f.write(content)
-    
+
     if verbose:
         print(f"Generated flat file: {output_file}")
 
 
-def generate_package_output(output_path: Path, config: CodegenConfig, types_data, schema_info, needs_computable_import, needs_expandable_import, imports_needed, verbose: bool):
+def generate_package_output(
+    output_path: Path,
+    config: CodegenConfig,
+    types_data,
+    schema_info,
+    needs_computable_import,
+    needs_expandable_import,
+    imports_needed,
+    verbose: bool,
+):
     """Generate package structure output."""
     env = get_template_env()
 
@@ -362,17 +426,24 @@ def get_python_type(
     return python_type
 
 
-def generate_stdout_output(config: CodegenConfig, schema_info: SchemaInfo, verbose: bool = False):
+def generate_stdout_output(
+    config: CodegenConfig, schema_info: SchemaInfo, verbose: bool = False
+):
     """Generate output to stdout instead of files."""
     import sys
-    
+
     if config.flat_output:
         # Generate flat output to stdout
         env = get_template_env()
-        
+
         # Process types (simplified version of the main processing logic)
-        types_data, needs_computable_import, needs_expandable_import, imports_needed = collect_types(schema_info, config, for_stdout=True)
-        
+        (
+            types_data,
+            needs_computable_import,
+            needs_expandable_import,
+            imports_needed,
+        ) = collect_types(schema_info, config, for_stdout=True)
+
         # Use the shared flat template
         template = env.get_template("flat.py.j2")
         content = template.render(
@@ -382,10 +453,12 @@ def generate_stdout_output(config: CodegenConfig, schema_info: SchemaInfo, verbo
             enums=schema_info.enums,
             additional_imports=list(imports_needed),
         )
-        
+
         print(content)
-        
+
     else:
-        print("# Package structure output not supported for stdout mode", file=sys.stderr)
+        print(
+            "# Package structure output not supported for stdout mode", file=sys.stderr
+        )
         print("# Use flat_output: true for stdout mode", file=sys.stderr)
         sys.exit(1)

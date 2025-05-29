@@ -2,7 +2,7 @@
 
 import yaml
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Optional
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -16,10 +16,16 @@ class CodegenConfig(BaseModel):
         default_factory=dict, description="Scalar type mappings"
     )
     templates: Optional[str] = Field(None, description="Custom templates directory")
-    flat_output: bool = Field(False, description="Generate single file instead of package structure")
+    flat_output: bool = Field(
+        False, description="Generate single file instead of package structure"
+    )
     stdout: bool = Field(False, description="Output to stdout instead of files")
-    schema_lines: Optional[str] = Field(None, description="Line ranges to include from schema (e.g., '1-10,15-20')")
-    base_schema: Optional[str] = Field(None, description="Path to base schema file to extract lines from")
+    schema_lines: Optional[str] = Field(
+        None, description="Line ranges to include from schema (e.g., '1-10,15-20')"
+    )
+    base_schema: Optional[str] = Field(
+        None, description="Path to base schema file to extract lines from"
+    )
 
     @field_validator("package")
     @classmethod
