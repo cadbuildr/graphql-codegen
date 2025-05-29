@@ -25,11 +25,13 @@ This documentation walks through GraphQL Codegen features with progressive examp
 
 | Example | Description |
 |---------|-------------|
+| [Hello](examples/00-hello.md) | Quick start with minimal schema |
+| [Scalars & Enums](examples/01-scalars-enums.md) | Type mapping and enumeration values |
 | [Basic Types](examples/01-basic-types.md) | Scalar types and simple objects |
-| [Nested Objects](examples/02-nested-objects.md) | Parameter wrappers and object composition |
-| [Compute Directive](examples/03-compute-directive.md) | Calculated fields with `@compute` |
-| [Expand Directive](examples/04-expand-directive.md) | JSON template expansion with `@expand` |
-| [Complete Schema](examples/05-complete-schema.md) | Full-featured smoothie schema |
+| [Interfaces](examples/02-interfaces.md) | Shared behavior with inheritance |
+| [Unions](examples/03-unions.md) | Type aliases for multiple possibilities |
+| [Compute Directive](examples/04-compute-directive.md) | Calculated fields with `@compute` |
+| [Expand Directive](examples/05-expand-directive.md) | JSON template expansion with `@expand` |
 
 ## 🎯 Key Features
 
