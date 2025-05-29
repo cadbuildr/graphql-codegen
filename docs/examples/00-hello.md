@@ -48,4 +48,4 @@ You'll see this output:
 
 ---
 
-[← Home](../index.md) | [Next: Basic Types →](01-basic-types.md) 
+[← Home](../index.md) | [Next: Scalars & Enums →](01-scalars-enums.md) 

@@ -50,11 +50,12 @@ nav:
   - Examples:
     - "00 - Hello": examples/00-hello.md
     - "01 - Scalars & Enums": examples/01-scalars-enums.md
-    - "02 - Basic Types": examples/01-basic-types.md
-    - "03 - Interfaces": examples/02-interfaces.md
-    - "04 - Unions": examples/03-unions.md
-    - "05 - Compute Directive": examples/04-compute-directive.md
-    - "06 - Expand Directive": examples/05-expand-directive.md
+    - "02 - Basic Types": examples/02-basic-types.md
+    - "03 - Interfaces": examples/03-interfaces.md
+    - "04 - Nested Objects": examples/04-nested-objects.md
+    - "05 - Unions": examples/05-unions.md
+    - "06 - Compute Directive": examples/06-compute-directive.md
+    - "07 - Expand Directive": examples/07-expand-directive.md
   - Reference:
     - CLI: reference/cli.md
     - Configuration: reference/config.md

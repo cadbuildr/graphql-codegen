@@ -50,4 +50,4 @@ To use custom scalars, add them to your `codegen.yaml`:
 
 ---
 
-[← Hello](00-hello.md) | [Next: Basic Types →](01-basic-types.md) 
+[← Hello](00-hello.md) | [Next: Basic Types →](02-basic-types.md) 
