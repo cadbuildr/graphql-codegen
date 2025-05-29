@@ -1,0 +1,16 @@
+package: userpost
+runtime_package: userpost.runtime
+codegen_version: "0.1"
+
+scalars:
+  # built-ins
+  String: str
+  Boolean: bool
+  Int: int
+  Float: float
+  ID: str
+
+  # project-specific
+  DateTime: datetime.datetime
+  CustomScalar1: typing.NewType("CustomScalar1", str)
+  CustomScalar2: typing.NewType("CustomScalar2", str)

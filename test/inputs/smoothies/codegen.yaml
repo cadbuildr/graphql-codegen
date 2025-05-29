@@ -1,0 +1,11 @@
+package: smoothies
+runtime_package: smoothies.runtime
+codegen_version: "0.1"
+
+scalars:
+  # Built-in GraphQL scalars
+  String: str
+  Boolean: bool
+  Int: int
+  Float: float
+  ID: str

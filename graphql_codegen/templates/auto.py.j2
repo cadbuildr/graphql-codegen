@@ -1,0 +1,227 @@
+"""Auto-generated helpers for {{ package_name }} - DO NOT EDIT."""
+
+import json
+from typing import Any, Callable, Dict
+
+_COMPUTE: Dict[str, Callable[[Any, str, dict], Any]] = {}
+_EXPAND_CUSTOM: Dict[str, Callable[[Any, dict], Any]] = {}
+
+# Export registration functions for user convenience
+__all__ = ["register_compute_fn", "register_expand_fn", "Computable", "Expandable"]
+
+class Computable:
+    """Mixin for types with @compute fields."""
+    def compute(self, field_name: str) -> Any:
+        """Compute value for field with @compute directive."""
+        if not hasattr(self.__class__, "model_fields"):
+            raise TypeError(f"{self.__class__.__name__} is not a Pydantic model, cannot use Computable.")
+
+        fld = self.__class__.model_fields.get(field_name)
+        if not fld:
+            raise ValueError(f"Field '{field_name}' not found in model {self.__class__.__name__}.")
+
+        meta = fld.json_schema_extra or {}
+        compute_meta = meta.get("compute")
+
+        if not compute_meta or not isinstance(compute_meta, dict):
+            raise ValueError(
+                f"Field '{field_name}' in model {self.__class__.__name__} has no valid @compute metadata."
+            )
+
+        fn_name = compute_meta.get("fn")
+        if not fn_name:
+            raise ValueError(f"Compute metadata for '{field_name}' is missing 'fn'.")
+
+        return run_compute(self, field_name, compute_meta)
+
+class Expandable:
+    """Mixin for types with @expand directive."""
+    def expand(self) -> Any:
+        """Expand this node into primitive components."""
+        if not hasattr(self.__class__, "model_fields"):
+             raise TypeError(f"{self.__class__.__name__} is not a Pydantic model, cannot use Expandable.")
+
+        expansion_data_source = getattr(self, "__expansion__", None)
+
+        if expansion_data_source is None:
+            if "result" in self.__class__.model_fields:
+                result_field_info = self.__class__.model_fields["result"]
+                meta_on_result_field = result_field_info.json_schema_extra or {}
+                expand_meta_on_field = meta_on_result_field.get("expand")
+                if expand_meta_on_field and isinstance(expand_meta_on_field, dict) and "into" in expand_meta_on_field:
+                    into_value = expand_meta_on_field["into"]
+                    if isinstance(into_value, dict):
+                        # 'into' is already a dict - use directly
+                        expansion_data_source = into_value
+                    else:
+                        # 'into' is still a string - parse it (backward compatibility)
+                        try:
+                            expansion_data_source = json.loads(into_value)
+                        except json.JSONDecodeError as e:
+                            raise ValueError(
+                                f"Failed to parse 'into' JSON for field 'result' in {self.__class__.__name__}: {e}\n"
+                                f"Content: {into_value[:100] if isinstance(into_value, str) else str(into_value)[:100]}..."
+                            )
+                else:
+                     raise ValueError(
+                        f"Type {self.__class__.__name__} is Expandable but has no __expansion__ attribute "
+                        f"and its 'result' field lacks valid @expand metadata."
+                    )
+            else:
+                 raise ValueError(
+                    f"Type {self.__class__.__name__} is Expandable but has no __expansion__ attribute or 'result' field to source expansion data."
+                )
+
+        if not isinstance(expansion_data_source, dict):
+            raise ValueError(
+                f"Resolved expansion data for {self.__class__.__name__} must be a dictionary. Got: {type(expansion_data_source)}"
+            )
+
+        return run_expand(self, expansion_data_source)
+
+def register_compute_fn(name: str):
+    def _wrap(fn):
+        _COMPUTE[name] = fn
+        return fn
+    return _wrap
+
+def run_compute(inst, field_name: str, meta: dict):
+    fn_name = meta.get("fn")
+    if not fn_name or fn_name not in _COMPUTE:
+        raise ValueError(f"Compute function '{fn_name}' not registered for field '{field_name}'.")
+    return _COMPUTE[fn_name](inst, field_name, meta)
+
+def register_expand_fn(name: str):
+    def _wrap(fn):
+        _EXPAND_CUSTOM[name] = fn
+        return fn
+    return _wrap
+
+def run_expand(inst, expansion_dict_resolved: dict):
+    if "fn" in expansion_dict_resolved:
+        fn_name = expansion_dict_resolved["fn"]
+        if fn_name not in _EXPAND_CUSTOM:
+            raise ValueError(f"Custom expand function '{fn_name}' not registered.")
+        return _EXPAND_CUSTOM[fn_name](inst, expansion_dict_resolved)
+
+    # For default expansion, we need to detect the target class
+    # Look for the 'result' field to get its type annotation
+    if hasattr(inst.__class__, 'model_fields') and 'result' in inst.__class__.model_fields:
+        from typing import get_type_hints
+        from importlib import import_module
+        try:
+            # Get the module namespace to resolve forward references
+            mod = import_module(inst.__class__.__module__)
+            ns = vars(mod)  # globalns/locals for hints
+            type_hints = get_type_hints(inst.__class__, ns, ns)
+            target_cls = type_hints.get('result')
+            if target_cls:
+                return _default_expand(inst, expansion_dict_resolved, target_cls=target_cls)
+        except (ImportError, NameError, AttributeError) as e:
+            # Fallback if type hints can't be resolved
+            pass
+
+    # Fallback: if we can't determine target class, raise an error
+    raise ValueError(
+        f"Cannot determine target class for expansion of {inst.__class__.__name__}. "
+        f"Make sure the expanded field has a proper type annotation."
+    )
+
+def _default_expand(instance: Any, expansion_template: Dict[str, Any], *, target_cls) -> Any:
+    """
+    Generic Pydantic model-based expansion engine.
+    Replaces placeholders like "$field_name" with instance attribute values.
+    Recursively builds Pydantic model instances instead of raw dictionaries.
+
+    Args:
+        instance: The model instance from which to pull placeholder values
+        expansion_template: The dictionary template guiding the expansion
+        target_cls: The Pydantic model class to instantiate
+
+    Returns:
+        Fully instantiated Pydantic model of type target_cls
+    """
+    from typing import get_args, get_origin
+    from pydantic import BaseModel, ValidationError
+
+    def _substitute_value(value, field_annotation):
+        """Recursively substitute values based on type annotation."""
+        # 1. Placeholder substitution
+        if isinstance(value, str) and value.startswith("$"):
+            attr_name = value[1:]
+            if hasattr(instance, attr_name):
+                return getattr(instance, attr_name)
+            else:
+                raise ValueError(f"Placeholder {value!r} not found on {instance.__class__.__name__}")
+
+        # 2. Recurse based on annotation
+        origin = get_origin(field_annotation) or field_annotation
+
+        # Handle List types
+        if isinstance(value, list) and origin is list:
+            args = get_args(field_annotation)
+            if args:
+                elem_type = args[0]
+                return [_substitute_value(v, elem_type) for v in value]
+            else:
+                return value
+
+        # Handle nested Pydantic models
+        if isinstance(value, dict) and isinstance(origin, type) and issubclass(origin, BaseModel):
+            return _build_model(value, origin)
+
+        # Primitive value - return as-is
+        return value
+
+    def _build_model(src_dict: dict, model_cls):
+        """Build a Pydantic model from a dictionary using field annotations."""
+        if not hasattr(model_cls, 'model_fields'):
+            raise ValueError(f"{model_cls.__name__} is not a Pydantic model")
+
+        data = {}
+        computed_fields = []  # Track which fields need computation
+        
+        for field_name, field_info in model_cls.model_fields.items():
+            if field_name in src_dict:
+                field_annotation = field_info.annotation
+                data[field_name] = _substitute_value(src_dict[field_name], field_annotation)
+            else:
+                # Check if this field has @compute directive
+                meta = field_info.json_schema_extra or {}
+                compute_meta = meta.get("compute")
+                if compute_meta and isinstance(compute_meta, dict):
+                    # This is a computed field - provide a temporary value
+                    field_annotation = field_info.annotation
+                    origin = getattr(field_annotation, '__origin__', field_annotation)
+                    
+                    # Provide a temporary value based on the type
+                    if hasattr(origin, '__name__') and origin.__name__ == 'FloatParameter':
+                        # Import FloatParameter from the same module as model_cls
+                        mod_name = model_cls.__module__
+                        from importlib import import_module
+                        mod = import_module(mod_name)
+                        FloatParameter = getattr(mod, 'FloatParameter', None)
+                        if FloatParameter:
+                            data[field_name] = FloatParameter(value=0.0)  # Temporary value
+                            computed_fields.append(field_name)
+
+        try:
+            instance = model_cls(**data)
+            
+            # Now compute the actual values for computed fields
+            if hasattr(instance, 'compute') and computed_fields:
+                for field_name in computed_fields:
+                    try:
+                        computed_value = instance.compute(field_name)
+                        setattr(instance, field_name, computed_value)
+                    except Exception as e:
+                        # If compute fails, keep the temporary value
+                        pass
+            
+            return instance
+        except ValidationError as e:
+            raise ValueError(
+                f"@expand could not build {model_cls.__name__}: {e}"
+            ) from None
+
+    return _build_model(expansion_template, target_cls)

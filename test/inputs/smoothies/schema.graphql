@@ -1,0 +1,61 @@
+# -------------------------------------------------
+# Global directives used by the code‑generator
+# -------------------------------------------------
+
+directive @compute(fn: String!) on FIELD_DEFINITION
+# `into` accepts raw JSON (string)
+directive @expand(into: String!) on FIELD_DEFINITION | OBJECT
+
+scalar String
+scalar Float
+
+type FloatParameter {
+  value: Float!
+}
+
+type Ingredient {
+  name: String!
+  calories_per_gram: FloatParameter!
+}
+
+type IngredientAmount {
+  ingredient: Ingredient!
+  grams: FloatParameter!
+  calories: FloatParameter! @compute(fn: "calcCalories")
+}
+
+type Smoothie {
+  name: String!
+  size: String!
+  parts: [IngredientAmount!]!
+}
+
+type BananaStrawberrySmoothie {
+  # Parameters ----------
+  size: String!
+
+  # Expansion spec ------
+  result: Smoothie!
+    @expand(
+      into: """
+      {
+        "name": "Banana-Strawberry",
+        "size": "$size",
+        "parts": [
+          {
+            "ingredient": {"name": "Banana", "calories_per_gram": {"value": 0.89}},
+            "grams": {"value": 120}
+          },
+          {
+            "ingredient": {"name": "Strawberry", "calories_per_gram": {"value": 0.32}},
+            "grams": {"value": 80}
+          },
+          {
+            "ingredient": {"name": "Milk", "calories_per_gram": {"value": 0.64}},
+            "grams": {"value": 200}
+          }
+        ]
+      }
+      """
+    )
+}

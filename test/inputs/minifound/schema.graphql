@@ -1,0 +1,105 @@
+directive @compute on FIELD_DEFINITION
+
+# Base types for parameters
+scalar Float
+scalar String
+scalar Boolean
+
+# Parameter types
+type FloatParameter {
+  value: Float!
+}
+
+type StringParameter {
+  value: String!
+}
+
+type BooleanParameter {
+  value: Boolean!
+}
+
+type IntParameter {
+  value: Int!
+}
+
+# Sketch primitives
+type Point {
+  x: FloatParameter!
+  y: FloatParameter!
+}
+
+type Line {
+  p1: Point!
+  p2: Point!
+}
+
+type Arc {
+  p1: Point!
+  p2: Point!
+  p3: Point! # control point
+}
+
+type Circle {
+  center: Point!
+  radius: FloatParameter!
+}
+
+type Ellipse {
+  center: Point!
+  a: FloatParameter!
+  b: FloatParameter!
+}
+
+# Composite shapes
+type Polygon {
+  lines: [Line!]!
+}
+
+# Custom shapes
+union BoundaryElement2D = Line | Arc
+
+type CustomClosedSketchShape {
+  boundaries: [BoundaryElement2D!]!
+}
+
+union ClosedShape2D = Circle | Ellipse | Polygon | CustomClosedSketchShape
+union Shape2D = ClosedShape2D | BoundaryElement2D | Point
+
+type Frame {
+  top_frame: Frame
+  name: StringParameter!
+  display: BooleanParameter!
+}
+
+type Plane {
+  frame: Frame!
+  display: BooleanParameter!
+  name: StringParameter!
+}
+
+type Sketch {
+  elements: [Shape2D!]!
+  plane: Plane!
+  origin: Point!
+}
+
+# Operations
+type Extrusion {
+  shapes: [Shape2D!]!
+  start: [FloatParameter!]!
+  end: [FloatParameter!]!
+  cut: [BooleanParameter!]!
+  sketch: Sketch!
+}
+
+type Part {
+  # TODO: Add part fields
+  xy: Plane! @compute
+  yx: Plane! @compute
+  xz: Plane! @compute
+  zx: Plane! @compute
+  yz: Plane! @compute
+  zy: Plane! @compute
+}
+
+# This is a comment and will be ignored
