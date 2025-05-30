@@ -12,11 +12,17 @@ from .parser import load_and_parse_schema_with_config, SchemaInfo
 
 # Helper function to strip hash comments from a string (typically JSON with comments)
 def strip_hash_comments(text_with_comments: str) -> str:
-    return "\n".join(
-        line.split("#", 1)[0].rstrip()
-        for line in text_with_comments.splitlines()
-        if line.split("#", 1)[0].strip()
-    )
+    """Remove lines starting with # from generated output."""
+    lines = text_with_comments.split("\n")
+    return "\n".join(line for line in lines if not line.strip().startswith("#"))
+
+
+def parse_into(value: str) -> dict:
+    """Parse 'into' JSON value from directive args, with fallback handling."""
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError:
+        return {}
 
 
 class FieldInfo(BaseModel):
@@ -69,11 +75,8 @@ def build_field_meta(
             needs_compute = True
         elif directive.name == "expand":
             into_value = directive.args.get("into", "{}")
-            try:
-                into_dict = json.loads(into_value)
-                meta["expand"] = {"into": into_dict}
-            except json.JSONDecodeError:
-                meta["expand"] = {"into": into_value}
+            into_dict = parse_into(into_value)
+            meta["expand"] = {"into": into_dict}
             needs_expand = True
 
     json_schema_extra = meta if meta else None
@@ -200,15 +203,15 @@ def collect_types(
         for directive in type_info.directives:
             if directive.name == "expand":
                 into_value = directive.args.get("into", "{}")
-                try:
+                into_dict = parse_into(into_value)
+                if isinstance(into_dict, dict):
                     # Parse JSON to validate and then re-serialize cleanly
-                    into_dict = json.loads(into_value)
                     expansion_spec = (
                         f"    __expansion__ = {json.dumps(into_dict, indent=4)}"
                     )
-                except json.JSONDecodeError:
+                else:
                     # Fallback: use raw value
-                    expansion_spec = f"    __expansion__ = {repr(into_value)}"
+                    expansion_spec = f"    __expansion__ = {repr(into_dict)}"
 
         types_data.append(
             TypeInfo(
@@ -333,6 +336,25 @@ def generate_package_files(
         )
 
 
+def render_flat(
+    types_data,
+    schema_info,
+    needs_computable_import,
+    needs_expandable_import,
+    imports_needed,
+) -> str:
+    """Render flat output using the shared template."""
+    env = get_template_env()
+    template = env.get_template("flat.py.j2")
+    return template.render(
+        types=types_data,
+        needs_computable_import=needs_computable_import,
+        needs_expandable_import=needs_expandable_import,
+        enums=schema_info.enums,
+        additional_imports=list(imports_needed),
+    )
+
+
 def generate_flat_output(
     output_path: Path,
     config: CodegenConfig,
@@ -344,16 +366,12 @@ def generate_flat_output(
     verbose: bool,
 ):
     """Generate a single file output."""
-    env = get_template_env()
-
-    # Use the shared flat template
-    template = env.get_template("flat.py.j2")
-    content = template.render(
-        types=types_data,
-        needs_computable_import=needs_computable_import,
-        needs_expandable_import=needs_expandable_import,
-        enums=schema_info.enums,
-        additional_imports=list(imports_needed),
+    content = render_flat(
+        types_data,
+        schema_info,
+        needs_computable_import,
+        needs_expandable_import,
+        imports_needed,
     )
 
     output_file = output_path / f"{config.package}.py"
@@ -433,10 +451,7 @@ def generate_stdout_output(
     import sys
 
     if config.flat_output:
-        # Generate flat output to stdout
-        env = get_template_env()
-
-        # Process types (simplified version of the main processing logic)
+        # Process types and generate flat output to stdout
         (
             types_data,
             needs_computable_import,
@@ -444,16 +459,13 @@ def generate_stdout_output(
             imports_needed,
         ) = collect_types(schema_info, config, for_stdout=True)
 
-        # Use the shared flat template
-        template = env.get_template("flat.py.j2")
-        content = template.render(
-            types=types_data,
-            needs_computable_import=needs_computable_import,
-            needs_expandable_import=needs_expandable_import,
-            enums=schema_info.enums,
-            additional_imports=list(imports_needed),
+        content = render_flat(
+            types_data,
+            schema_info,
+            needs_computable_import,
+            needs_expandable_import,
+            imports_needed,
         )
-
         print(content)
 
     else:

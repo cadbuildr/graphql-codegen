@@ -1,0 +1,47 @@
+{# Shared macros for both flat and models templates #}
+
+{%- macro render_enums(enums) -%}
+{%- for enum_info in enums %}
+
+class {{ enum_info.name }}(str, Enum):
+    """Generated from GraphQL enum {{ enum_info.name }}."""
+{%- for value in enum_info.values %}
+    {{ value }} = "{{ value }}"
+{%- endfor %}
+{%- endfor %}
+{%- endmacro -%}
+
+{%- macro render_types(types) -%}
+{%- for type_info in types %}
+{%- if type_info.kind != "union" %}
+
+class {{ type_info.name }}({{ type_info.base_classes | join(", ") }}):
+    """Generated from GraphQL {{ type_info.kind }} {{ type_info.name }}."""
+{%- for field in type_info.fields %}
+    {{ field.name }}: {{ field.python_type }} = Field({% if field.python_type.startswith("Optional[") %}default=None{% else %}...{% endif %}{% if field.json_schema_extra %}, json_schema_extra={{ field.json_schema_extra | repr }}{% endif %})
+{%- endfor %}
+{%- if type_info.expansion_spec %}
+{{ type_info.expansion_spec }}
+{%- endif %}
+    model_config = {"protected_namespaces": ()}  # Pydantic v2 config
+{%- endif %}
+{%- endfor %}
+{%- endmacro -%}
+
+{%- macro render_unions(types) -%}
+# Union type aliases
+{%- for type_info in types %}
+{%- if type_info.kind == "union" %}
+{{ type_info.name }} = Union[{% for union_type in type_info.union_types %}"{{ union_type }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+{%- endif %}
+{%- endfor %}
+{%- endmacro -%}
+
+{%- macro render_model_rebuilds(types) -%}
+# Rebuild models to resolve forward references and inheritance
+{%- for type_info in types %}
+{%- if type_info.kind != "union" %}
+{{ type_info.name }}.model_rebuild()
+{%- endif %}
+{%- endfor %}
+{%- endmacro -%} 

@@ -4,47 +4,73 @@
 
 This documentation walks through GraphQL Codegen features with progressive examples using a smoothie recipe schema. Each example builds on the previous one, demonstrating core concepts step by step.
 
+> **Mission statement:** keep a _single_ GraphQL SDL as the source‑of‑truth for a data‑flow/DAG.
+> Generate clean, typed Python (and later other languages) while letting authors describe higher‑level "macro" nodes that are **either executed directly by a compiler** or **auto‑expanded** into primitives when that compiler does not recognise them.
+
+---
+
+## 1. Why another GraphQL flavour?
+
+- **GraphQL SDL is readable & tooling‑friendly** – editors, formatters, schema diffing, etc.
+- A CAD / ETL / game‑logic _DAG_ is just a typed AST. SDL already gives us:
+
+  - _object types_ → nodes
+  - _fields_ → edges / attributes
+  - _unions & enums_ → polymorphism & constants
+
+- What SDL does **not** offer is the _procedural layer_: _how_ a node derives data or unrolls into primitives for a downstream compiler. We bridge that gap with directives ( see `@compute` and `@expand`)
+
+---
+
 ## 🚀 Quick Start
 
-1. **Install dependencies:**
-   ```bash
-   poetry install
-   ```
+### Installation
 
-2. **Generate examples:**
-   ```bash
-   ./gen_doc.sh
-   ```
+#### Option 1: Native Installation (Recommended)
+Install directly with pip for system-wide access:
 
-3. **Try it yourself:**
-   ```bash
-   poetry run python -m graphql_codegen.cli test/inputs/smoothies --stdout --flat
-   ```
+```bash
+# Install in development mode (links to source)
+pip install -e .
+
+# Or build and install the package
+poetry build
+pip install dist/graphql_codegen-*.whl
+```
+
+After installation, the CLI is available globally:
+```bash
+graphql-codegen --help
+```
+
+#### Option 2: Poetry Environment
+If you prefer to keep it in the Poetry environment:
+
+```bash
+# Install dependencies
+poetry install
+
+# Use via poetry run
+poetry run graphql-codegen --help
+
+# Or activate the poetry shell
+poetry shell
+graphql-codegen --help
+```
+
+---
 
 ## 📚 Learning Path
 
 | Example | Description |
 |---------|-------------|
-| [Hello](examples/00-hello.md) | Quick start with minimal schema |
-| [Scalars & Enums](examples/01-scalars-enums.md) | Type mapping and enumeration values |
-| [Basic Types](examples/01-basic-types.md) | Scalar types and simple objects |
-| [Interfaces](examples/02-interfaces.md) | Shared behavior with inheritance |
-| [Unions](examples/03-unions.md) | Type aliases for multiple possibilities |
-| [Compute Directive](examples/04-compute-directive.md) | Calculated fields with `@compute` |
-| [Expand Directive](examples/05-expand-directive.md) | JSON template expansion with `@expand` |
+| [Hello](examples/00-hello.md) | Foundation: From basic scalars to complete objects |
+| [Interfaces](examples/01-interfaces-and-unions.md) | Shared behavior with inheritance and type unions|
+| [Compute Directive](examples/02-compute-directive.md) | Calculated fields with `@compute` |
+| [Expand Directive](examples/03-expand-directive.md) | JSON template expansion with `@expand` |
 
-## 🎯 Key Features
+---
 
-- **🔗 DRY Schema Management**: Single source schema with line extraction
-- **📤 Flexible Output**: Generate packages or single files
-- **🧮 Computed Fields**: Derive values with Python functions using `@compute`
-- **🎨 Template Expansion**: JSON-based macro expansion with `@expand`
-- **🔌 Runtime Flexibility**: Optional custom logic with registration functions
+## The Smoothie Schema Example 
 
-## 📖 Master Schema
-
-All examples extract portions from this single source of truth:
-
-```graphql
-{% include_markdown "../test/inputs/smoothies/schema.graphql" %}
-``` 
+Throughout the documentation we'll explore a smoothie recipe example, incrementally increasing complexity to introduce different features of the language step by step.

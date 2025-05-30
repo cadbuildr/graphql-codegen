@@ -9,11 +9,10 @@ mkdir -p docs/outputs
 
 # Define examples with their line ranges
 declare -a examples=(
-    "smoothie_01_basic:9-19:Basic types and fields"
-    "smoothie_02_nested:5-31:Nested objects and parameter wrappers" 
-    "smoothie_03_compute:1-32:@compute directive"
-    "smoothie_04_expand:1-65:@expand directive with template substitution"
-    "smoothie_05_flat:1-62:Complete smoothie schema"
+    "hello:12-33:Foundation: From basic scalars to complete objects"
+    "interfaces_and_unions:12-50:Interfaces and implementations"
+    "compute:1-66:@compute directive"
+    "expand:1-108:@expand directive"
 )
 
 success_count=0
@@ -88,5 +87,15 @@ if poetry run mkdocs build; then
     echo "📖 View at: file://$(pwd)/site/index.html"
 else
     echo "❌ Documentation build failed"
+    exit 1
+fi
+
+echo
+echo "🔍 Checking for documentation drift..."
+if git diff --exit-code docs/examples; then
+    echo "✅ Documentation is up to date!"
+else
+    echo "❌ Documentation has uncommitted changes!"
+    echo "   Run this script and commit the updated docs."
     exit 1
 fi 

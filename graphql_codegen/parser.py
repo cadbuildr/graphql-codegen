@@ -356,11 +356,10 @@ def extract_schema_lines(schema_path: Path, line_ranges: str) -> str:
     with open(schema_path, "r") as f:
         lines = f.readlines()
 
-    selected_lines = []
     ranges = line_ranges.split(",")
 
-    for range_spec in ranges:
-        range_spec = range_spec.strip()
+    selected_lines = []
+    for range_spec in (r.strip() for r in ranges):
         if "-" in range_spec:
             start, end = map(int, range_spec.split("-"))
             # Convert to 0-based indexing

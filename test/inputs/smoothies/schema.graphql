@@ -21,32 +21,38 @@ enum Size {
 }
 
 # -------------------------------------------------
-# Interfaces
-# -------------------------------------------------
-
-interface Ingredient {
-  name: String!
-  calories_per_gram: FloatParameter!
-}
-
-# -------------------------------------------------
 # Basic Types
 # -------------------------------------------------
 
-type FloatParameter {
-  value: Float!
+type NutritionalInfo {
+  calories_per_gram: Float!
+  protein_grams: Float!
+  sugar_grams: Float!
+  fiber_grams: Float!
 }
+
+
+# -------------------------------------------------
+# Interfaces
+# -------------------------------------------------
+
+
+interface Ingredient {
+  name: String!
+  calories_per_gram: Float
+}
+
 
 type Fruit implements Ingredient {
   name: String!
-  calories_per_gram: FloatParameter!
-  sweetness: FloatParameter!
+  calories_per_gram: Float!
+  sweetness: Float!
 }
 
 type Addon implements Ingredient {
   name: String!
-  calories_per_gram: FloatParameter!
-  protein: FloatParameter!
+  calories_per_gram: Float!
+  protein: Float!
 }
 
 # -------------------------------------------------
@@ -61,8 +67,8 @@ union Blendable = Fruit | Addon
 
 type IngredientAmount {
   ingredient: Blendable!
-  grams: FloatParameter!
-  calories: FloatParameter! @compute(fn: "calcCalories")
+  grams: Float!
+  calories: Float! @compute(fn: "calcCalories")
 }
 
 type Smoothie {

@@ -28,9 +28,6 @@ theme:
 
 plugins:
   - search
-  - include-markdown:
-      preserve_includer_indent: true
-      dedent: false
 
 markdown_extensions:
   - pymdownx.highlight:
@@ -38,7 +35,11 @@ markdown_extensions:
       line_spans: __span
       pygments_lang_class: true
   - pymdownx.inlinehilite
-  - pymdownx.snippets
+  - pymdownx.snippets:
+      check_paths: true
+      base_path:
+        - docs
+        - .
   - pymdownx.superfences
   - admonition
   - pymdownx.details
@@ -49,16 +50,9 @@ nav:
   - Home: index.md
   - Examples:
     - "00 - Hello": examples/00-hello.md
-    - "01 - Scalars & Enums": examples/01-scalars-enums.md
-    - "02 - Basic Types": examples/02-basic-types.md
-    - "03 - Interfaces": examples/03-interfaces.md
-    - "04 - Nested Objects": examples/04-nested-objects.md
-    - "05 - Unions": examples/05-unions.md
-    - "06 - Compute Directive": examples/06-compute-directive.md
-    - "07 - Expand Directive": examples/07-expand-directive.md
-  - Reference:
-    - CLI: reference/cli.md
-    - Configuration: reference/config.md
+    - "01 - Interfaces & Unions": examples/01-interfaces-and-unions.md
+    - "02 - Compute Directive": examples/02-compute-directive.md
+    - "03 - Expand Directive": examples/03-expand-directive.md
 
 extra:
   social:

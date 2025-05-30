@@ -50,6 +50,17 @@ jobs:
     
     - name: Run type checking with mypy
       run: poetry run mypy graphql_codegen/
+
+    - name: Generate sample outputs
+      run: |
+        poetry run graphql-codegen test/inputs/smoothies/codegen.yaml
+        poetry run graphql-codegen test/inputs/userpost/codegen.yaml
+
+    # NEW: make the generated packages importable
+    - name: Install generated packages
+      run: |
+        python -m pip install -e test/outputs/smoothies
+        python -m pip install -e test/outputs/userpost
     
     - name: Run tests with pytest
       run: poetry run pytest test/ -v --cov=graphql_codegen --cov-report=xml
