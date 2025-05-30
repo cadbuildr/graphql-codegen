@@ -179,39 +179,35 @@ def _default_expand(instance: Any, expansion_template: Dict[str, Any], *, target
             raise ValueError(f"{model_cls.__name__} is not a Pydantic model")
 
         data = {}
-        computed_fields = []  # Track which fields need computation
         
         for field_name, field_info in model_cls.model_fields.items():
             if field_name in src_dict:
                 field_annotation = field_info.annotation
                 data[field_name] = _substitute_value(src_dict[field_name], field_annotation)
-            else:
-                # Check if this field has @compute directive
+            # If field is missing and not computed, let Pydantic handle the error
+            # If field is missing and computed, it will use default=None and be computed later
+
+        # Create instance with available fields (computed fields will be None by default)
+        try:
+            instance = model_cls(**data)
+        except Exception as e:
+            raise ValueError(f"@expand could not build {model_cls.__name__}: {e}") from e
+        
+        # Now compute any computed fields that are None
+        for field_name, field_info in model_cls.model_fields.items():
+            if getattr(instance, field_name, None) is None:
                 meta = field_info.json_schema_extra or {}
                 compute_meta = meta.get("compute")
                 if compute_meta and isinstance(compute_meta, dict):
-                    # This is a computed field - provide a temporary value
-                    field_annotation = field_info.annotation
-                    origin = getattr(field_annotation, '__origin__', field_annotation)
-                    
-
-        try:
-            instance = model_cls(**data)
-            
-            # Now compute the actual values for computed fields
-            if hasattr(instance, 'compute') and computed_fields:
-                for field_name in computed_fields:
                     try:
                         computed_value = instance.compute(field_name)
                         setattr(instance, field_name, computed_value)
                     except Exception as e:
-                        # If compute fails, keep the temporary value
-                        pass
-            
-            return instance
-        except ValidationError as e:
-            raise ValueError(
-                f"@expand could not build {model_cls.__name__}: {e}"
-            ) from None
+                        raise ValueError(
+                            f"Failed to compute field '{field_name}' for {model_cls.__name__}. "
+                            f"Make sure the compute function '{compute_meta.get('fn')}' is registered."
+                        ) from e
+        
+        return instance
 
     return _build_model(expansion_template, target_cls)

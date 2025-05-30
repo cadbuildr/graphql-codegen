@@ -18,7 +18,7 @@ class {{ enum_info.name }}(str, Enum):
 class {{ type_info.name }}({{ type_info.base_classes | join(", ") }}):
     """Generated from GraphQL {{ type_info.kind }} {{ type_info.name }}."""
 {%- for field in type_info.fields %}
-    {{ field.name }}: {{ field.python_type }} = Field({% if field.python_type.startswith("Optional[") %}default=None{% else %}...{% endif %}{% if field.json_schema_extra %}, json_schema_extra={{ field.json_schema_extra | repr }}{% endif %})
+    {{ field.name }}: {{ field.python_type }} = Field({% if field.python_type.startswith("Optional[") %}default=None{% elif field.json_schema_extra and field.json_schema_extra.get("compute") %}default=None{% else %}...{% endif %}{% if field.json_schema_extra %}, json_schema_extra={{ field.json_schema_extra | repr }}{% endif %})
 {%- endfor %}
 {%- if type_info.expansion_spec %}
 {{ type_info.expansion_spec }}

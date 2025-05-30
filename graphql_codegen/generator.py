@@ -405,13 +405,7 @@ def generate_package_output(
 
     # Generate files using templates
 
-    # 1. Package __init__.py
-    package_init_template = env.get_template("package_init.py.j2")
-    package_init_content = package_init_template.render(package_name=config.package)
-    with open(output_path / "__init__.py", "w") as f:
-        f.write(package_init_content)
-
-    # 2. models.py
+    # 1. models.py
     models_template = env.get_template("models.py.j2")
     models_content = models_template.render(
         types=types_data,
@@ -423,7 +417,7 @@ def generate_package_output(
     with open(output_path / "gen" / "models.py", "w") as f:
         f.write(models_content)
 
-    # 3. auto.py
+    # 2. auto.py
     auto_template = env.get_template("auto.py.j2")
     auto_content = auto_template.render(package_name=config.package)
     with open(output_path / "gen" / "auto.py", "w") as f:
