@@ -1,4 +1,4 @@
-# 03 - @expand Directive
+# 04 - @expand Directive
 
 **Template Expansion: JSON Macros with Variable Substitution**
 
@@ -13,7 +13,7 @@ The second key concept of our codegen is to provide our schema with expansion ca
 Copy this content into `expand.graphql`:
 
 ```graphql
---8<-- "test/inputs/smoothies/schema.graphql"
+--8<-- "test/inputs/smoothies/schema.graphql:1:133"
 ```
 
 ## 🚀 Run It
@@ -25,7 +25,7 @@ poetry run python -m graphql_codegen.cli . --stdout --flat
 ## 🐍 Generated Python
 
 ```python
---8<-- "docs/outputs/expand.py"
+--8<-- "docs/outputs/expand.py:153:"
 ```
 
 ## 🔍 Key Concepts
@@ -71,4 +71,4 @@ print(len(full_smoothie.parts))  # 3 ingredients
 
 ---
 
-[← Compute Directive](02-compute-directive.md) | [Home](../index.md) 
+[← Method Directive](03-method-directive.md) | [Next: Default Directive →](05-default-directive.md) 

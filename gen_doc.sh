@@ -12,10 +12,12 @@ echo "✅ Directory created"
 
 # Define examples with their line ranges
 declare -a examples=(
-    "hello:12-33:Foundation: From basic scalars to complete objects"
-    "interfaces_and_unions:12-50:Interfaces and implementations"
-    "compute:1-66:@compute directive"
-    "expand:1-108:@expand directive"
+    "hello:12-35:Foundation: From basic scalars to complete objects"
+    "interfaces_and_unions:12-64:Interfaces and implementations"
+    "compute:1-103:@compute directive"
+    "method:1-103:@method directive"
+    "expand:1-133:@expand directive"
+    "default:1-73:@default directive"
 )
 
 success_count=0

@@ -1,4 +1,4 @@
-# 06 - @compute Directive
+# 02 - @compute Directive
 
 **Dynamic Fields: Runtime Calculation with Python Functions**
 
@@ -13,7 +13,7 @@ beyond type definition and enable you to compute `derivated` fields by providing
 Copy this content into `compute.graphql`:
 
 ```graphql
---8<-- "test/inputs/smoothies/schema.graphql:1:66"
+--8<-- "test/inputs/smoothies/schema.graphql:1:103"
 ```
 
 ## 🚀 Run It
@@ -25,7 +25,7 @@ poetry run python -m graphql_codegen.cli . --stdout --flat
 ## 🐍 Generated Python
 
 ```python
---8<-- "docs/outputs/compute.py"
+--8<-- "docs/outputs/compute.py:153:"
 ```
 
 ## 🔍 Key Concepts
@@ -71,4 +71,4 @@ print(f"Calories: {calories.value}")  # 106.8
 
 ---
 
-[← Interfaces & Unions](01-interfaces-and-unions.md) | [Next: Expand Directive →](03-expand-directive.md) 
+[← Interfaces & Unions](01-interfaces-and-unions.md) | [Next: Method Directive →](03-method-directive.md) 

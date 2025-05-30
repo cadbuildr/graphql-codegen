@@ -17,12 +17,26 @@ class {{ enum_info.name }}(str, Enum):
 
 class {{ type_info.name }}({{ type_info.base_classes | join(", ") }}):
     """Generated from GraphQL {{ type_info.kind }} {{ type_info.name }}."""
+{%- for static_method in type_info.static_methods %}
+    @staticmethod
+    def {{ static_method.name }}(*_args, **_kw):
+        return _eval_expr(globals(), {{ static_method.expr | repr }})
+
+{%- endfor %}
 {%- for field in type_info.fields %}
-    {{ field.name }}: {{ field.python_type }} = Field({% if field.python_type.startswith("Optional[") %}default=None{% elif field.json_schema_extra and field.json_schema_extra.get("compute") %}default=None{% else %}...{% endif %}{% if field.json_schema_extra %}, json_schema_extra={{ field.json_schema_extra | repr }}{% endif %})
+    {{ field.name }}: {{ field.python_type }} = Field({% if field.python_type.startswith("Optional[") %}default=None{% elif field.json_schema_extra and field.json_schema_extra.get("compute") %}default=None{% elif field.json_schema_extra and field.json_schema_extra.get("default") %}default_factory=lambda: _eval_expr(globals(), {{ field.json_schema_extra.get("default").get("expr") | repr }}){% else %}...{% endif %}{% if field.json_schema_extra %}, json_schema_extra={{ field.json_schema_extra | repr }}{% endif %})
 {%- endfor %}
 {%- if type_info.expansion_spec %}
 {{ type_info.expansion_spec }}
 {%- endif %}
+{%- for method in type_info.methods %}
+    def {{ method.name }}(self) -> {{ method.return_type }}:
+        {%- if method.expr %}
+        return _eval_expr(self, {{ method.expr | repr }})
+        {%- else %}
+        return run_method(self, {{ method.fn | repr }})
+        {%- endif %}
+{%- endfor %}
     model_config = {"protected_namespaces": ()}  # Pydantic v2 config
 {%- endif %}
 {%- endfor %}

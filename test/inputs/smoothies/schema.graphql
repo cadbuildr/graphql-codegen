@@ -2,9 +2,11 @@
 # Global directives used by the code‑generator
 # -------------------------------------------------
 
-directive @compute(fn: String!) on FIELD_DEFINITION
-# `into` accepts raw JSON (string)
+directive @compute(fn: String, expr: String) on FIELD_DEFINITION
 directive @expand(into: String!) on FIELD_DEFINITION | OBJECT
+directive @method(expr: String, fn: String) on FIELD_DEFINITION
+directive @default(expr: String!) on FIELD_DEFINITION
+directive @static_method(name: String!, expr: String!) repeatable on OBJECT
 
 # -------------------------------------------------
 # Scalars and Enums  
@@ -65,6 +67,21 @@ union Blendable = Fruit | Addon
 # Main Types  
 # -------------------------------------------------
 
+"""Demo: show @default in action"""
+type ScalarHolder {
+  value: Float! @default(expr: "3.141592")
+}
+
+"""Demo: show @static_method factory"""
+type SmoothieFactory
+  @static_method(
+    name: "empty_small",
+    expr: "Smoothie(name='Empty', size=Size.SMALL, parts=[])"
+  )
+{
+  dummy: String  # no real fields needed
+}
+
 type IngredientAmount {
   ingredient: Blendable!
   grams: Float!
@@ -75,6 +92,14 @@ type Smoothie {
   name: String!
   size: Size!
   parts: [IngredientAmount!]!
+
+  # Already-existing computed field
+  fruit_names: [String!]!
+    @compute(expr:"parts[is Fruit].ingredient.name")
+
+  # example of using @method to expose a computed field as a method
+  get_fruit_names: [String!]!
+    @method(expr:"parts[is Fruit].ingredient.name")
 }
 
 type BananaStrawberrySmoothie {

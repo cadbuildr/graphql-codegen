@@ -54,7 +54,6 @@ jobs:
     - name: Generate sample outputs
       run: |
         poetry run graphql-codegen test/inputs/smoothies/
-        poetry run graphql-codegen test/inputs/userpost/
 
     # NEW: make the generated packages importable by adding to PYTHONPATH
     - name: Add generated packages to Python path

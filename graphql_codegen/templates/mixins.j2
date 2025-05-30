@@ -1,0 +1,38 @@
+{# Shared mixin classes for GraphQL codegen #}
+
+class Computable:
+    """Mixin for types with @compute fields."""
+    def compute(self, field_name: str) -> Any:
+        """Compute value for field with @compute directive."""
+        if not hasattr(self.__class__, "model_fields"):
+            raise TypeError(f"{self.__class__.__name__} is not a Pydantic model, cannot use Computable.")
+
+        fld = self.__class__.model_fields.get(field_name)
+        if not fld:
+            raise ValueError(f"Field '{field_name}' not found in model {self.__class__.__name__}.")
+
+        meta = fld.json_schema_extra or {}
+        
+        # Check for @compute directive first
+        compute_meta = meta.get("compute")
+        if compute_meta and isinstance(compute_meta, dict):
+            # NEW – expr support
+            if "expr" in compute_meta:
+                return _eval_expr(self, compute_meta["expr"])
+
+            # Legacy fn path
+            fn_name = compute_meta.get("fn")
+            if not fn_name:
+                raise ValueError(f"Compute metadata for '{field_name}' is missing 'fn'.")
+            return run_compute(self, field_name, compute_meta)
+        
+        # NEW – Check for @default directive
+        default_meta = meta.get("default")
+        if default_meta and isinstance(default_meta, dict):
+            expr = default_meta.get("expr")
+            if expr:
+                return _eval_expr(globals(), expr)
+        
+        raise ValueError(
+            f"Field '{field_name}' in model {self.__class__.__name__} has no valid @compute or @default metadata."
+        ) 

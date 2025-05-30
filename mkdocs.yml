@@ -52,7 +52,9 @@ nav:
     - "00 - Hello": examples/00-hello.md
     - "01 - Interfaces & Unions": examples/01-interfaces-and-unions.md
     - "02 - Compute Directive": examples/02-compute-directive.md
-    - "03 - Expand Directive": examples/03-expand-directive.md
+    - "03 - Method Directive": examples/03-method-directive.md
+    - "04 - Expand Directive": examples/04-expand-directive.md
+    - "05 - Default Directive": examples/05-default-directive.md
 
 extra:
   social:

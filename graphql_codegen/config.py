@@ -9,17 +9,19 @@ from pydantic import BaseModel, Field, field_validator
 class CodegenConfig(BaseModel):
     """Configuration model for codegen.yaml."""
 
-    package: str = Field(..., description="Python package name")
+    package_name: str = Field(..., description="Python package name", alias="package")
     runtime_package: str = Field(..., description="Runtime package path")
     codegen_version: str = Field(..., description="Codegen version lock")
     scalars: Dict[str, str] = Field(
         default_factory=dict, description="Scalar type mappings"
     )
     templates: Optional[str] = Field(None, description="Custom templates directory")
-    flat_output: bool = Field(
-        False, description="Generate single file instead of package structure"
+    flat: bool = Field(
+        False,
+        description="Generate single file instead of package structure",
+        alias="flat_output",
     )
-    stdout: bool = Field(False, description="Output to stdout instead of files")
+    output: str = Field("", description="Output path or '-' for stdout")
     schema_lines: Optional[str] = Field(
         None, description="Line ranges to include from schema (e.g., '1-10,15-20')"
     )
@@ -27,7 +29,7 @@ class CodegenConfig(BaseModel):
         None, description="Path to base schema file to extract lines from"
     )
 
-    @field_validator("package")
+    @field_validator("package_name")
     @classmethod
     def validate_package_name(cls, v: str) -> str:
         """Ensure package name is a valid Python identifier."""
@@ -42,6 +44,33 @@ class CodegenConfig(BaseModel):
         if v != "0.1":
             raise ValueError(f"Unsupported codegen version '{v}'. Expected '0.1'")
         return v
+
+    # Backward compatibility properties
+    @property
+    def package(self) -> str:
+        """Backward compatibility for package attribute."""
+        return self.package_name
+
+    @property
+    def flat_output(self) -> bool:
+        """Backward compatibility for flat_output attribute."""
+        return self.flat
+
+    @flat_output.setter
+    def flat_output(self, value: bool):
+        """Backward compatibility setter for flat_output attribute."""
+        self.flat = value
+
+    @property
+    def stdout(self) -> bool:
+        """Backward compatibility for stdout attribute."""
+        return self.output == "-"
+
+    @stdout.setter
+    def stdout(self, value: bool):
+        """Backward compatibility setter for stdout attribute."""
+        if value:
+            self.output = "-"
 
 
 def load_config(schema_dir: Path) -> CodegenConfig:
@@ -63,11 +92,11 @@ def load_config(schema_dir: Path) -> CodegenConfig:
         raise ValueError(f"Invalid configuration in {config_path}: {e}")
 
 
-def get_output_path(config: CodegenConfig, schema_dir: Path) -> Path:
+def get_output_path(schema_dir: Path, config: CodegenConfig) -> Path:
     """Determine output path for generated package."""
     # Output goes to test/outputs/<package_name> for test cases
     # For real usage, this could be configurable
     if "test/inputs" in str(schema_dir):
-        return schema_dir.parent.parent / "outputs" / config.package
+        return schema_dir.parent.parent / "outputs" / config.package_name
     else:
-        return schema_dir.parent / config.package
+        return schema_dir.parent / config.package_name

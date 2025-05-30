@@ -1,105 +1,301 @@
-directive @compute on FIELD_DEFINITION
+# -------------------------------------------------
+# Global directives used by the code‑generator
+# -------------------------------------------------
 
-# Base types for parameters
-scalar Float
+directive @compute(fn: String!) on FIELD_DEFINITION
+# `into` accepts raw JSON (string)
+directive @expand(into: String!) on FIELD_DEFINITION | OBJECT
+directive @method(expr: String, fn: String) on FIELD_DEFINITION
+
+
+# -------------------------------------------------
+# Scalars and Enums  
+# -------------------------------------------------
+
 scalar String
+scalar Float
+scalar Int
 scalar Boolean
+# PLACEHOLDERS FOR Future TYPES that needs implementation 
+# scalar EdgeFinder
+# scalar FaceFinder
 
-# Parameter types
-type FloatParameter {
+# -------------------------------------------------
+# Parameters
+# -------------------------------------------------
+
+interface Parameters {
+	value: String
+}
+
+type FloatParameter implements Parameters {
   value: Float!
 }
 
-type StringParameter {
-  value: String!
-}
-
-type BooleanParameter {
-  value: Boolean!
-}
-
-type IntParameter {
+type IntParameter implements Parameters {
   value: Int!
 }
 
-# Sketch primitives
-type Point {
+type BoolParameter implements Parameters {
+  value: Boolean!
+}
+
+type StringParameter implements Parameters {
+  value: String!
+}
+
+# =================================================
+# 2D SKETCH ELEMENTS
+# =================================================
+
+# -------------------------------------------------
+# 2D Sketch Interfaces
+# -------------------------------------------------
+
+interface SketchElement {
+  sketch: Sketch!
+  # TODO : get_plane and get_frame methods
+  # Base interface for all 2D sketch elements
+  get_plane: Plane! @method(expr:"sketch.plane")
+  get_frame: Frame! @method(expr:"sketch.plane.frame")
+}
+
+interface ClosedSketchShape {
+  sketch: Sketch! ## Note remove this once we accept empty interfaces 
+}
+
+# -------------------------------------------------
+# 2D Sketch Points
+# -------------------------------------------------
+
+type Point implements SketchElement {
   x: FloatParameter!
   y: FloatParameter!
 }
 
-type Line {
+type PointWithTangent implements SketchElement {
+  p: Point!
+  angle: FloatParameter!
+}
+
+# -------------------------------------------------
+# 2D Sketch Primitives
+# -------------------------------------------------
+
+type Line implements SketchElement {
   p1: Point!
   p2: Point!
 }
 
-type Arc {
+type Arc implements SketchElement {
   p1: Point!
   p2: Point!
-  p3: Point! # control point
+  p3: Point!
 }
 
-type Circle {
+# -------------------------------------------------
+# 2D Sketch Closed Shapes
+# -------------------------------------------------
+
+type Circle implements ClosedSketchShape & SketchElement {
   center: Point!
   radius: FloatParameter!
 }
 
-type Ellipse {
+type Ellipse implements ClosedSketchShape & SketchElement {
   center: Point!
   a: FloatParameter!
   b: FloatParameter!
 }
 
-# Composite shapes
-type Polygon {
+type Polygon implements ClosedSketchShape & SketchElement {
   lines: [Line!]!
 }
 
-# Custom shapes
-union BoundaryElement2D = Line | Arc
-
-type CustomClosedSketchShape {
-  boundaries: [BoundaryElement2D!]!
+type CustomClosedShape implements ClosedSketchShape & SketchElement {
+  primitives: [SketchPrimitive!]!
 }
 
-union ClosedShape2D = Circle | Ellipse | Polygon | CustomClosedSketchShape
-union Shape2D = ClosedShape2D | BoundaryElement2D | Point
+type SVGShape implements ClosedSketchShape & SketchElement {
+  svg: StringParameter!
+  xshift: FloatParameter!
+  yshift: FloatParameter!
+  angle: FloatParameter!
+  scale: FloatParameter!
+}
+
+# -------------------------------------------------
+# 2D Sketch Container
+# -------------------------------------------------
+
+type Sketch {
+  plane: Plane!
+  origin: Point!
+  elements: [SketchElement!]!
+}
+
+type Axis {
+  line: Line!
+  frame: Frame!
+}
+
+# =================================================
+# 3D ELEMENTS
+# =================================================
+
+# -------------------------------------------------
+# 3D Points
+# -------------------------------------------------
+
+type Point3D {
+  x: FloatParameter!
+  y: FloatParameter!
+  z: FloatParameter!
+}
+
+type Point3DWithOrientation {
+  roll: FloatParameter!
+  pitch: FloatParameter!
+  yaw: FloatParameter!
+  point: Point3D!
+}
+
+# -------------------------------------------------
+# 3D Coordinate Systems
+# -------------------------------------------------
 
 type Frame {
   top_frame: Frame
   name: StringParameter!
-  display: BooleanParameter!
+  display: BoolParameter!
+  make_origin_frame: Frame! @method(expr:"frame")
 }
 
 type Plane {
   frame: Frame!
-  display: BooleanParameter!
   name: StringParameter!
+  display: BoolParameter!
 }
 
-type Sketch {
-  elements: [Shape2D!]!
-  plane: Plane!
-  origin: Point!
+# -------------------------------------------------
+# 3D Curves
+# -------------------------------------------------
+
+interface Curve3D {
+  temp: String! # TODO : remove this once we accept empty interfaces
 }
 
-# Operations
+type Helix3D implements Curve3D {
+  pitch: FloatParameter!
+  height: FloatParameter!
+  radius: FloatParameter!
+  center: Point3D!
+  dir: Point3D!
+  lefthand: BoolParameter!
+}
+
+# =================================================
+# OPERATIONS
+# =================================================
+
 type Extrusion {
-  shapes: [Shape2D!]!
-  start: [FloatParameter!]!
-  end: [FloatParameter!]!
-  cut: [BooleanParameter!]!
+  shape: ClosedSketchShape!
+  start: FloatParameter!
+  end: FloatParameter!
+  cut: BoolParameter!
   sketch: Sketch!
 }
 
-type Part {
-  # TODO: Add part fields
-  xy: Plane! @compute
-  yx: Plane! @compute
-  xz: Plane! @compute
-  zx: Plane! @compute
-  yz: Plane! @compute
-  zy: Plane! @compute
+type Lathe {
+  shape: ClosedSketchShape!
+  axis: Axis!
+  cut: BoolParameter!
+  sketch: Sketch!
 }
 
-# This is a comment and will be ignored
+type Fillet {
+  solid: Operation!
+  radius: FloatParameter!
+  # edge_finder: EdgeFinder
+}
+
+type Chamfer {
+  solid: Operation!
+  radius: FloatParameter!
+  # edge_finder: EdgeFinder
+}
+
+type Shell {
+  solid: Operation!
+  thickness: FloatParameter!
+  # face_finder: FaceFinder
+}
+
+type Loft {
+  shapes: [ClosedSketchShape!]!
+  sketchs: [Sketch!]!
+}
+
+type Sweep {
+  profile: ClosedSketchShape!
+  path: Curve3D!
+  sketch: Sketch!
+}
+
+# =================================================
+# MATERIALS AND RENDERING
+# =================================================
+
+type Material {
+  options: String!
+}
+
+# =================================================
+# PARTS AND ASSEMBLIES
+# =================================================
+
+interface Root {
+  frame: Frame!
+  name: StringParameter!
+  operations: [Operation!]!
+  material: Material
+  planes: [Plane!]!
+}
+
+
+interface AssemblyRoot implements Root {
+  components: [Root!]!
+}
+
+
+type Part {
+  name: StringParameter
+  root: Root! 
+  xy: Plane! @method(expr:"root.xy")
+}
+
+type Assembly {
+  root: AssemblyRoot!
+}
+
+
+
+
+
+
+# =================================================
+# UNION TYPES
+# =================================================
+
+# 2D Sketch Unions
+union SketchPrimitive = Line | Arc
+
+union ClosedSketchShapeTypes = Polygon | Circle | Ellipse | CustomClosedShape | SVGShape
+
+union SketchElementTypes = Point | PointWithTangent | Line | Arc | Circle | Ellipse | Polygon | CustomClosedShape | SVGShape
+
+# 3D Unions
+union Curve3DTypes = Helix3D
+
+# Operation Unions
+union Operation = Extrusion | Lathe | Fillet | Chamfer | Shell | Loft | Sweep

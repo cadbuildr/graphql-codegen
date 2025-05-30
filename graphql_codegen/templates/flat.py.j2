@@ -1,6 +1,6 @@
 {% from "macros.j2" import render_enums, render_types, render_unions, render_model_rebuilds %}
 from __future__ import annotations
-from typing import List, Optional, Any, Dict, Union
+from typing import List, Optional, Any, Dict, Union, Iterable
 from pydantic import BaseModel, Field
 from enum import Enum
 {%- if additional_imports %}
@@ -8,32 +8,14 @@ from enum import Enum
 {{ import_line }}
 {%- endfor %}
 {%- endif %}
-import json
 
 # Auto-generated helpers - inline for flat output
-_COMPUTE: Dict[str, Any] = {}
-_EXPAND_CUSTOM: Dict[str, Any] = {}
+{% include "runtime_helpers.j2" %}
 
 {% if needs_computable_import or needs_expandable_import %}
 # Import mixins from auto module equivalent
 {% if needs_computable_import %}
-class Computable:
-    """Mixin for types with @compute fields."""
-    def compute(self, field_name: str) -> Any:
-        """Compute value for field with @compute directive."""
-        if not hasattr(self.__class__, "model_fields"):
-            raise TypeError(f"{self.__class__.__name__} is not a Pydantic model, cannot use Computable.")
-        fld = self.__class__.model_fields.get(field_name)
-        if not fld:
-            raise ValueError(f"Field '{field_name}' not found in model {self.__class__.__name__}.")
-        meta = fld.json_schema_extra or {}
-        compute_meta = meta.get("compute")
-        if not compute_meta or not isinstance(compute_meta, dict):
-            raise ValueError(f"Field '{field_name}' in model {self.__class__.__name__} has no valid @compute metadata.")
-        fn_name = compute_meta.get("fn")
-        if not fn_name:
-            raise ValueError(f"Compute metadata for '{field_name}' is missing 'fn'.")
-        return _COMPUTE[fn_name](self, field_name, compute_meta)
+{% include "mixins.j2" %}
 {% endif %}
 
 {% if needs_expandable_import %}
@@ -45,19 +27,6 @@ class Expandable:
         return self
 {% endif %}
 {% endif %}
-
-# Registration functions
-def register_compute_fn(name: str):
-    def _wrap(fn):
-        _COMPUTE[name] = fn
-        return fn
-    return _wrap
-
-def register_expand_fn(name: str):
-    def _wrap(fn):
-        _EXPAND_CUSTOM[name] = fn
-        return fn
-    return _wrap
 
 {{ render_enums(enums) }}
 
