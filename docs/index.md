@@ -67,8 +67,9 @@ graphql-codegen --help
 | [Hello](examples/00-hello.md) | Foundation: From basic scalars to complete objects |
 | [Interfaces](examples/01-interfaces-and-unions.md) | Shared behavior with inheritance and type unions|
 | [Compute Directive](examples/02-compute-directive.md) | Calculated fields with `@compute` |
-| [Method Directive](examples/03-method-directive.md) | Instance methods with `@method` |
+| [Method Directive](examples/03-method-directive.md) | Instance and static methods with `@method` and `@static_method` |
 | [Expand Directive](examples/04-expand-directive.md) | JSON template expansion with `@expand` |
+| [Default Directive](examples/05-default-directive.md) | Field defaults with `@default` |
 
 ---
 

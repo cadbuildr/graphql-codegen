@@ -11,7 +11,7 @@ Building on `@compute` fields, the `@method` directive generates actual Python i
 Copy this content into `method.graphql`:
 
 ```graphql
---8<-- "test/inputs/smoothies/schema.graphql:1:86"
+--8<-- "test/inputs/smoothies/schema.graphql:1:103"
 ```
 
 ## 🚀 Run It
@@ -29,8 +29,10 @@ poetry run python -m graphql_codegen.cli . --stdout --flat
 ## 🔍 Key Concepts
 
 - **@method directive**: Generates instance methods instead of data fields
+- **@static_method directive**: Generates static factory methods on classes
 - **Expression syntax**: Same mini-DSL as `@compute` directive
 - **Method generation**: Creates actual `def method_name(self)` in Python classes
+- **Static method generation**: Creates `@staticmethod def method_name(*args, **kwargs)`
 - **Runtime evaluation**: Methods call the same expression engine as computed fields
 
 ## 💡 What's New
@@ -47,12 +49,22 @@ class Smoothie(BaseModel, Computable):
         return _eval_expr(self, 'parts[is Fruit].ingredient.name')
 ```
 
+And the `SmoothieFactory` demonstrates static methods:
+
+```python
+class SmoothieFactory(BaseModel, Computable):
+    @staticmethod
+    def empty_small(*_args, **_kw):
+        return _eval_expr(globals(), "Smoothie(name='Empty', size=Size.SMALL, parts=[])")
+    dummy: Optional[str] = Field(default=None)
+```
+
 ## 🧮 Runtime Usage
 
 ```python
-from your_module import BananaStrawberrySmoothie, Smoothie, Size
+from your_module import BananaStrawberrySmoothie, Smoothie, Size, SmoothieFactory
 
-# Create and expand a smoothie
+# Instance methods: Create and expand a smoothie
 macro = BananaStrawberrySmoothie(size=Size.LARGE, result=Smoothie(name="dummy", size=Size.SMALL, parts=[]))
 smoothie = macro.expand()
 
@@ -63,16 +75,23 @@ method_names = smoothie.get_fruit_names()        # Via generated method
 print(field_names)   # ['Banana', 'Strawberry']
 print(method_names)  # ['Banana', 'Strawberry']
 assert field_names == method_names  # ✅ Same result
+
+# Static methods: Factory methods that don't need an instance
+empty_smoothie = SmoothieFactory.empty_small()
+print(empty_smoothie.name)  # 'Empty'
+print(empty_smoothie.size)  # Size.SMALL
+print(empty_smoothie.parts) # []
 ```
 
-## 🔧 Method vs Compute Field
+## 🔧 Method vs Compute Field vs Static Method
 
-| Feature | @compute field | @method |
-|---------|----------------|---------|
-| Access pattern | `obj.compute("field_name")` | `obj.method_name()` |
-| Type checking | Runtime only | Full IDE support |
-| Serialization | Included in model | Not serialized |
-| Use case | Data fields | Utility methods |
+| Feature | @compute field | @method | @static_method |
+|---------|----------------|---------|----------------|
+| Access pattern | `obj.compute("field_name")` | `obj.method_name()` | `Class.method_name()` |
+| Instance required | Yes | Yes | No |
+| Type checking | Runtime only | Full IDE support | Full IDE support |
+| Serialization | Included in model | Not serialized | Not applicable |
+| Use case | Data fields | Utility methods | Factory methods |
 
 ---
 

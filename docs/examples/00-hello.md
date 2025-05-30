@@ -25,7 +25,7 @@ Let's dive into a smoothie shop schema that showcases the foundational GraphQL-t
 Copy this code into `hello.graphql`:
 
 ```graphql
---8<-- "test/inputs/smoothies/schema.graphql:8:30"
+--8<-- "test/inputs/smoothies/schema.graphql:12:35"
 ```
 
 **What's cooking here?**
@@ -88,6 +88,7 @@ graphql-codegen . --stdout --flat
 ## 🎪 The Magic Behind the Curtain
 
 Notice those helper functions and registration decorators? They're preparing the stage for advanced features like:
+
 - **Computed fields** that calculate values on the fly
 - **Schema expansion** that transforms simple inputs into complex structures
 - **Custom validation** that goes beyond basic type checking

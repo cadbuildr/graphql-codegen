@@ -11,7 +11,7 @@ In this follow up example we will create reusable interfaces and unions. The goa
 Copy this content into `interfaces.graphql`:
 
 ```graphql
---8<-- "test/inputs/smoothies/schema.graphql:13:56"
+--8<-- "test/inputs/smoothies/schema.graphql:12:64"
 ```
 
 ## 🚀 Run It

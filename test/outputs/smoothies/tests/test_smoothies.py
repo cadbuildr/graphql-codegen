@@ -124,7 +124,7 @@ def test_smoothies_ingredient_amount_compute():
     assert computed_calories_strawberry == 48.0
 
     # Test compute on a field without @compute (should fail as per current Computable.compute logic)
-    with pytest.raises(ValueError, match="has no valid @compute metadata"):
+    with pytest.raises(ValueError, match="has no valid @compute or @default metadata"):
         banana_amount.compute("grams")
 
 

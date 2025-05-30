@@ -49,6 +49,7 @@ class TypeInfo(BaseModel):
     base_classes: List[str]
     fields: List[FieldInfo]
     methods: List[MethodInfo] = []
+    static_methods: List[MethodInfo] = []  # NEW: for @static_method directive
     expansion_spec: Optional[str] = None
     kind: str = "object"  # "object", "interface", "union"
     union_types: List[str] = []  # For unions, the member types
@@ -92,6 +93,11 @@ def build_field_meta(
             into_dict = parse_into(into_value)
             meta["expand"] = {"into": into_dict}
             needs_expand = True
+        elif directive.name == "default":
+            # NEW: honour @default(expr:"…")
+            expr = directive.args.get("expr")
+            if expr:
+                meta["default"] = {"expr": expr}
 
     json_schema_extra = meta if meta else None
     return python_type, json_schema_extra, needs_compute, needs_expand
@@ -146,14 +152,31 @@ def collect_types(
         type_has_expand_on_field = any(
             any(d.name == "expand" for d in f.directives) for f in type_info.fields
         )
+        type_has_method_directive = any(
+            any(d.name == "method" for d in f.directives) for f in type_info.fields
+        )
+        # NEW: Check for @default and @static_method directives
+        type_has_default_on_field = any(
+            any(d.name == "default" for d in f.directives) for f in type_info.fields
+        )
+        type_has_static_method = any(
+            d.name == "static_method" for d in type_info.directives
+        )
 
-        inherits_computable = type_has_compute_on_field
+        inherits_computable = (
+            type_has_compute_on_field
+            or type_has_default_on_field
+            or type_has_static_method
+        )
         inherits_expandable = type_has_expand_on_type or type_has_expand_on_field
 
         if inherits_computable:
             needs_computable_import = True
         if inherits_expandable:
             needs_expandable_import = True
+        # Methods that use expressions also need _eval_expr import
+        if type_has_method_directive:
+            needs_computable_import = True
 
         base_classes = []
         # For interfaces, only include BaseModel if no other interfaces are inherited
@@ -251,12 +274,28 @@ def collect_types(
                     # Fallback: use raw value
                     expansion_spec = f"    __expansion__ = {repr(into_dict)}"
 
+        # NEW – Handle @static_method directives
+        static_methods_data = []
+        for directive in type_info.directives:
+            if directive.name == "static_method":
+                name = directive.args.get("name")
+                expr = directive.args.get("expr")
+                if name and expr:
+                    static_methods_data.append(
+                        MethodInfo(
+                            name=name,
+                            return_type="Any",  # Static methods can return anything
+                            expr=expr,
+                        )
+                    )
+
         types_data.append(
             TypeInfo(
                 name=type_info.name,
                 base_classes=base_classes,
                 fields=fields_data,
                 methods=methods_data,
+                static_methods=static_methods_data,  # NEW: include static methods
                 expansion_spec=expansion_spec,
                 kind=type_info.kind,
                 interfaces=type_info.interfaces,

@@ -13,7 +13,7 @@ The second key concept of our codegen is to provide our schema with expansion ca
 Copy this content into `expand.graphql`:
 
 ```graphql
---8<-- "test/inputs/smoothies/schema.graphql"
+--8<-- "test/inputs/smoothies/schema.graphql:1:133"
 ```
 
 ## 🚀 Run It
@@ -71,4 +71,4 @@ print(len(full_smoothie.parts))  # 3 ingredients
 
 ---
 
-[← Method Directive](03-method-directive.md) | [Home](../index.md) 
+[← Method Directive](03-method-directive.md) | [Next: Default Directive →](05-default-directive.md) 

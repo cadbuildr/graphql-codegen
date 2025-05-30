@@ -13,7 +13,7 @@ beyond type definition and enable you to compute `derivated` fields by providing
 Copy this content into `compute.graphql`:
 
 ```graphql
---8<-- "test/inputs/smoothies/schema.graphql:1:86"
+--8<-- "test/inputs/smoothies/schema.graphql:1:103"
 ```
 
 ## 🚀 Run It
