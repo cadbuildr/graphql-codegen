@@ -8,10 +8,18 @@ from enum import Enum
 {{ import_line }}
 {%- endfor %}
 {%- endif %}
+{%- set has_methods = false %}
+{%- for type_info in types %}
+{%- if type_info.methods and type_info.methods | length > 0 %}
+{%- set has_methods = true %}
+{%- endif %}
+{%- endfor %}
 {%- if needs_computable_import or needs_expandable_import %}
 {%- set import_list = [] %}
 {%- if needs_computable_import %}{{ import_list.append("Computable") or "" }}{%- endif %}
 {%- if needs_expandable_import %}{{ import_list.append("Expandable") or "" }}{%- endif %}
+{# Always include method functions for now #}
+{{ import_list.append("_eval_expr") or "" }}{{ import_list.append("run_method") or "" }}
 from .auto import {{ import_list | join(", ") }}
 {%- endif %}
 

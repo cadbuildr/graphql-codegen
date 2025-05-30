@@ -1,4 +1,4 @@
-# 03 - @expand Directive
+# 04 - @expand Directive
 
 **Template Expansion: JSON Macros with Variable Substitution**
 
@@ -71,4 +71,4 @@ print(len(full_smoothie.parts))  # 3 ingredients
 
 ---
 
-[← Compute Directive](02-compute-directive.md) | [Home](../index.md) 
+[← Method Directive](03-method-directive.md) | [Home](../index.md) 

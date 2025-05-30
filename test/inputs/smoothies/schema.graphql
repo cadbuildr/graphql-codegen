@@ -2,9 +2,9 @@
 # Global directives used by the code‑generator
 # -------------------------------------------------
 
-directive @compute(fn: String!) on FIELD_DEFINITION
-# `into` accepts raw JSON (string)
+directive @compute(fn: String, expr: String) on FIELD_DEFINITION
 directive @expand(into: String!) on FIELD_DEFINITION | OBJECT
+directive @method(expr: String, fn: String) on FIELD_DEFINITION
 
 # -------------------------------------------------
 # Scalars and Enums  
@@ -75,6 +75,14 @@ type Smoothie {
   name: String!
   size: Size!
   parts: [IngredientAmount!]!
+
+  # Already-existing computed field
+  fruit_names: [String!]!
+    @compute(expr:"parts[is Fruit].ingredient.name")
+
+  # NEW – the same logic exposed as a **method**
+  get_fruit_names: [String!]!
+    @method(expr:"parts[is Fruit].ingredient.name")
 }
 
 type BananaStrawberrySmoothie {

@@ -33,12 +33,22 @@ class FieldInfo(BaseModel):
     json_schema_extra: Optional[Dict[str, Any]] = None
 
 
+class MethodInfo(BaseModel):
+    """Information about a method for template rendering."""
+
+    name: str
+    return_type: str
+    expr: Optional[str] = None
+    fn: Optional[str] = None
+
+
 class TypeInfo(BaseModel):
     """Information about a type for template rendering."""
 
     name: str
     base_classes: List[str]
     fields: List[FieldInfo]
+    methods: List[MethodInfo] = []
     expansion_spec: Optional[str] = None
     kind: str = "object"  # "object", "interface", "union"
     union_types: List[str] = []  # For unions, the member types
@@ -71,7 +81,11 @@ def build_field_meta(
 
     for directive in field.directives:
         if directive.name == "compute":
-            meta["compute"] = {"fn": directive.args.get("fn")}
+            # minimal support: either fn **or** expr
+            if "expr" in directive.args:
+                meta["compute"] = {"expr": directive.args["expr"]}
+            else:
+                meta["compute"] = {"fn": directive.args.get("fn")}
             needs_compute = True
         elif directive.name == "expand":
             into_value = directive.args.get("into", "{}")
@@ -165,8 +179,9 @@ def collect_types(
         if inherits_expandable:
             base_classes.append("Expandable")
 
-        # Process fields
+        # Process fields and methods
         fields_data = []
+        methods_data = []
         # Collect interface field names to avoid duplication
         interface_field_names: set[str] = set()
         for interface_name in type_info.interfaces:
@@ -180,6 +195,22 @@ def collect_types(
             # Skip fields that are already defined in interfaces
             if field.name in interface_field_names:
                 continue
+
+            # --------------- NEW - Check for @method directive -----------------
+            meth_dir = next((d for d in field.directives if d.name == "method"), None)
+            if meth_dir:
+                methods_data.append(
+                    MethodInfo(
+                        name=field.name,
+                        return_type=get_python_type(
+                            field.type_name, field.is_list, False, config
+                        ),
+                        expr=meth_dir.args.get("expr"),
+                        fn=meth_dir.args.get("fn"),
+                    )
+                )
+                continue  # do NOT emit as Pydantic field
+            # --------------- OLD path (fields) ---
 
             (
                 python_type,
@@ -225,6 +256,7 @@ def collect_types(
                 name=type_info.name,
                 base_classes=base_classes,
                 fields=fields_data,
+                methods=methods_data,
                 expansion_spec=expansion_spec,
                 kind=type_info.kind,
                 interfaces=type_info.interfaces,

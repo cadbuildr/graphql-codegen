@@ -14,8 +14,9 @@ echo "✅ Directory created"
 declare -a examples=(
     "hello:12-33:Foundation: From basic scalars to complete objects"
     "interfaces_and_unions:12-50:Interfaces and implementations"
-    "compute:1-66:@compute directive"
-    "expand:1-108:@expand directive"
+    "compute:1-86:@compute directive"
+    "method:1-86:@method directive"
+    "expand:1-116:@expand directive"
 )
 
 success_count=0

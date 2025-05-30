@@ -126,3 +126,16 @@ def test_smoothies_ingredient_amount_compute():
     # Test compute on a field without @compute (should fail as per current Computable.compute logic)
     with pytest.raises(ValueError, match="has no valid @compute metadata"):
         banana_amount.compute("grams")
+
+
+def test_fruit_names_expr():
+    """Test the @compute directive with expr for fruit_names field."""
+
+    def _make_macro():
+        dummy = Smoothie(name="x", size=Size.SMALL, parts=[])
+        return BananaStrawberrySmoothie(size=Size.LARGE, result=dummy)
+
+    smoothie_macro = _make_macro()
+    smoothie = smoothie_macro.expand()  # Build real Smoothie
+    names = smoothie.compute("fruit_names")  # Use expr engine
+    assert names == ["Banana", "Strawberry"]

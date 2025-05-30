@@ -23,6 +23,14 @@ class {{ type_info.name }}({{ type_info.base_classes | join(", ") }}):
 {%- if type_info.expansion_spec %}
 {{ type_info.expansion_spec }}
 {%- endif %}
+{%- for method in type_info.methods %}
+    def {{ method.name }}(self) -> {{ method.return_type }}:
+        {%- if method.expr %}
+        return _eval_expr(self, {{ method.expr | repr }})
+        {%- else %}
+        return run_method(self, {{ method.fn | repr }})
+        {%- endif %}
+{%- endfor %}
     model_config = {"protected_namespaces": ()}  # Pydantic v2 config
 {%- endif %}
 {%- endfor %}
