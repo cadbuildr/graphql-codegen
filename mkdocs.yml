@@ -1,6 +1,6 @@
 site_name: GraphQL Codegen Documentation
 site_description: Progressive examples from basic types to advanced directives
-site_url: https://graphql-codegen.dev
+# site_url: https://graphql-codegen.dev
 
 theme:
   name: material
