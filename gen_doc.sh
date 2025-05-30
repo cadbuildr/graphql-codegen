@@ -102,7 +102,8 @@ except Exception as e:
     if eval "$generation_cmd" > "$output_file"; then
         echo "✅ Generated $output_file"
         echo "File size: $(wc -l < "$output_file") lines"
-        ((success_count++))
+        success_count=$((success_count + 1))
+        echo "Success count incremented to: $success_count"
     else
         echo "❌ Failed to generate $output_file"
         echo "   Config used: $temp_config"
