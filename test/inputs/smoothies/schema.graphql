@@ -90,16 +90,16 @@ type BananaStrawberrySmoothie {
         "size": "$size",
         "parts": [
           {
-            "ingredient": {"name": "Banana", "calories_per_gram": {"value": 0.89}, "sweetness": {"value": 8.5}},
-            "grams": {"value": 120}
+            "ingredient": {"name": "Banana", "calories_per_gram": 0.89, "sweetness": 8.5},
+            "grams": 120
           },
           {
-            "ingredient": {"name": "Strawberry", "calories_per_gram": {"value": 0.32}, "sweetness": {"value": 7.2}},
-            "grams": {"value": 80}
+            "ingredient": {"name": "Strawberry", "calories_per_gram": 0.32, "sweetness": 7.2},
+            "grams": 80
           },
           {
-            "ingredient": {"name": "Protein Powder", "calories_per_gram": {"value": 4.0}, "protein": {"value": 25.0}},
-            "grams": {"value": 30}
+            "ingredient": {"name": "Protein Powder", "calories_per_gram": 4.0, "protein": 25.0},
+            "grams": 30
           }
         ]
       }

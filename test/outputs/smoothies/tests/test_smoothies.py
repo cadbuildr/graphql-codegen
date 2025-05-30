@@ -9,8 +9,8 @@ import pytest
 from smoothies.gen.models import (
     BananaStrawberrySmoothie,
     IngredientAmount,
-    Ingredient,
-    FloatParameter,
+    Fruit,
+    Size,
     Smoothie,  # Ensure Smoothie is imported if used by BananaStrawberrySmoothie
 )
 from smoothies.gen import auto as smoothies_auto
@@ -39,9 +39,9 @@ def test_smoothies_banana_strawberry_expand():
 
     # Provide a dummy Smoothie for the required 'result' field during instantiation.
     # Pydantic validates on __init__. The actual expansion happens when .expand() is called.
-    dummy_smoothie_payload = Smoothie(name="dummy", size="DUMMY", parts=[])
+    dummy_smoothie_payload = Smoothie(name="dummy", size=Size.SMALL, parts=[])
     smoothie_macro = BananaStrawberrySmoothie(
-        size="LARGE", result=dummy_smoothie_payload
+        size=Size.LARGE, result=dummy_smoothie_payload
     )
 
     # Check that the BananaStrawberrySmoothie has the right setup
@@ -64,13 +64,13 @@ def test_smoothies_banana_strawberry_expand():
         expanded_result.name == "Banana-Strawberry"
     ), "Name should be set from template"
     assert (
-        expanded_result.size == "LARGE"
+        expanded_result.size == Size.LARGE
     ), "Size should be expanded from instance attribute"
     assert len(expanded_result.parts) == 3, "Should have 3 ingredient parts"
 
     # Check the ingredients are properly built
     part_names = [part.ingredient.name for part in expanded_result.parts]
-    expected_names = ["Banana", "Strawberry", "Milk"]
+    expected_names = ["Banana", "Strawberry", "Protein Powder"]
     assert (
         part_names == expected_names
     ), f"Expected ingredients {expected_names}, got {part_names}"
@@ -80,15 +80,9 @@ def test_smoothies_banana_strawberry_expand():
         assert isinstance(
             part, IngredientAmount
         ), "Each part should be an IngredientAmount instance"
-        assert isinstance(
-            part.ingredient, Ingredient
-        ), "Each ingredient should be an Ingredient instance"
-        assert isinstance(
-            part.grams, FloatParameter
-        ), "Grams should be a FloatParameter instance"
-        assert isinstance(
-            part.calories, FloatParameter
-        ), "Calories should be a FloatParameter instance"
+        assert hasattr(part, "ingredient"), "Each part should have an ingredient"
+        assert isinstance(part.grams, float), "Grams should be a float"
+        assert isinstance(part.calories, float), "Calories should be a float"
 
 
 def test_smoothies_ingredient_amount_compute():
@@ -97,14 +91,14 @@ def test_smoothies_ingredient_amount_compute():
     # The "calcCalories" function is already registered by importing smoothies.compute_functions
     # No need to re-register it here
 
-    banana = Ingredient(name="Banana", calories_per_gram=FloatParameter(value=0.89))
+    banana = Fruit(name="Banana", calories_per_gram=0.89, sweetness=8.5)
     banana_amount = IngredientAmount(
         ingredient=banana,
-        grams=FloatParameter(value=100.0),
+        grams=100.0,
         # 'calories' is computed, so initial value can be anything Pydantic allows (e.g. a default or None if Optional)
         # For a non-optional field, Pydantic expects a value or a default_factory.
-        # Since it's FloatParameter!, it must be provided. The @compute should override it.
-        calories=FloatParameter(value=-1.0),  # Dummy initial value
+        # Since it's float!, it must be provided. The @compute should override it.
+        calories=-1.0,  # Dummy initial value
     )
 
     # Check that the IngredientAmount has the @compute setup for 'calories'
@@ -116,20 +110,18 @@ def test_smoothies_ingredient_amount_compute():
 
     computed_calories = banana_amount.compute("calories")
 
-    assert isinstance(computed_calories, FloatParameter)
-    assert computed_calories.value == 89.0
+    assert isinstance(computed_calories, float)
+    assert computed_calories == 89.0
 
-    strawberry = Ingredient(
-        name="Strawberry", calories_per_gram=FloatParameter(value=0.32)
-    )
+    strawberry = Fruit(name="Strawberry", calories_per_gram=0.32, sweetness=7.2)
     strawberry_amount = IngredientAmount(
         ingredient=strawberry,
-        grams=FloatParameter(value=150.0),
-        calories=FloatParameter(value=-1.0),  # Dummy initial value
+        grams=150.0,
+        calories=-1.0,  # Dummy initial value
     )
     computed_calories_strawberry = strawberry_amount.compute("calories")
-    assert isinstance(computed_calories_strawberry, FloatParameter)
-    assert computed_calories_strawberry.value == 48.0
+    assert isinstance(computed_calories_strawberry, float)
+    assert computed_calories_strawberry == 48.0
 
     # Test compute on a field without @compute (should fail as per current Computable.compute logic)
     with pytest.raises(ValueError, match="has no valid @compute metadata"):

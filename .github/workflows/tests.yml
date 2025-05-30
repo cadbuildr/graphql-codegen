@@ -56,11 +56,9 @@ jobs:
         poetry run graphql-codegen test/inputs/smoothies/
         poetry run graphql-codegen test/inputs/userpost/
 
-    # NEW: make the generated packages importable
-    - name: Install generated packages
-      run: |
-        python -m pip install -e test/outputs/smoothies
-        python -m pip install -e test/outputs/userpost
+    # NEW: make the generated packages importable by adding to PYTHONPATH
+    - name: Add generated packages to Python path
+      run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)/test/outputs" >> $GITHUB_ENV
     
     - name: Run tests with pytest
       run: poetry run pytest test/ -v --cov=graphql_codegen --cov-report=xml

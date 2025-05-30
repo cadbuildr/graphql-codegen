@@ -95,6 +95,13 @@ def collect_types(
     needs_expandable_import = False
     imports_needed: set[str] = set()
 
+    # Analyze scalar mappings to determine required imports
+    for scalar_type, python_type in config.scalars.items():
+        if "datetime" in python_type:
+            imports_needed.add("import datetime")
+        elif "typing." in python_type:
+            imports_needed.add("import typing")
+
     for type_info in schema_info.types:
         if type_info.name in [
             "Query",
