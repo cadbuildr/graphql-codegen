@@ -194,16 +194,6 @@ def _default_expand(instance: Any, expansion_template: Dict[str, Any], *, target
                     field_annotation = field_info.annotation
                     origin = getattr(field_annotation, '__origin__', field_annotation)
                     
-                    # Provide a temporary value based on the type
-                    if hasattr(origin, '__name__') and origin.__name__ == 'FloatParameter':
-                        # Import FloatParameter from the same module as model_cls
-                        mod_name = model_cls.__module__
-                        from importlib import import_module
-                        mod = import_module(mod_name)
-                        FloatParameter = getattr(mod, 'FloatParameter', None)
-                        if FloatParameter:
-                            data[field_name] = FloatParameter(value=0.0)  # Temporary value
-                            computed_fields.append(field_name)
 
         try:
             instance = model_cls(**data)
