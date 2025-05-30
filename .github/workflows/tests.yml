@@ -53,8 +53,8 @@ jobs:
 
     - name: Generate sample outputs
       run: |
-        poetry run graphql-codegen test/inputs/smoothies/codegen.yaml
-        poetry run graphql-codegen test/inputs/userpost/codegen.yaml
+        poetry run graphql-codegen test/inputs/smoothies/
+        poetry run graphql-codegen test/inputs/userpost/
 
     # NEW: make the generated packages importable
     - name: Install generated packages
