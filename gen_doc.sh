@@ -47,7 +47,8 @@ EOF
     
     output_file="docs/outputs/${example}.py"
     
-    # Generate using temporary config
+    # Generate using temporary config with better error handling
+    echo "  → Running generation command..."
     if poetry run python -c "
 import sys
 sys.path.append('.')
@@ -57,16 +58,25 @@ from graphql_codegen.parser import load_and_parse_schema_with_config
 from pathlib import Path
 import yaml
 
-with open('$temp_config') as f:
-    config_data = yaml.safe_load(f)
-config = CodegenConfig(**config_data)
-schema_info = load_and_parse_schema_with_config(Path('.'), config)
-generate_stdout_output(config, schema_info)
-" > "$output_file" 2>/dev/null; then
+try:
+    with open('$temp_config') as f:
+        config_data = yaml.safe_load(f)
+    config = CodegenConfig(**config_data)
+    schema_info = load_and_parse_schema_with_config(Path('.'), config)
+    generate_stdout_output(config, schema_info)
+except Exception as e:
+    print(f'ERROR in $example generation: {e}', file=sys.stderr)
+    import traceback
+    traceback.print_exc()
+    sys.exit(1)
+" > "$output_file"; then
         echo "✅ Generated $output_file"
         ((success_count++))
     else
         echo "❌ Failed to generate $output_file"
+        echo "   Config used: $temp_config"
+        echo "   Output would be: $output_file"
+        exit 1
     fi
     
     # Clean up temp config
