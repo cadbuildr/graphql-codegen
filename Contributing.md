@@ -71,3 +71,4 @@ test/
 - **DRY Principle:** be extremely dry (this is the point of this tool so it should be reflected in its codebase. )
 - **No Unnecessary Code:** no fluff, no code that is not reflected in dedicated tests.
 - **Focused Tests:** test should also not be overly verbose and present key specific features. They are to be used both as examples and testing.
+- **docs** We have a step by step doc that is DRY we only transclude file from our tests. And explain step by step the features of the generation.

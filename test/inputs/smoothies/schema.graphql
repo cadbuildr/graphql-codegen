@@ -6,33 +6,80 @@ directive @compute(fn: String!) on FIELD_DEFINITION
 # `into` accepts raw JSON (string)
 directive @expand(into: String!) on FIELD_DEFINITION | OBJECT
 
+# -------------------------------------------------
+# Scalars and Enums  
+# -------------------------------------------------
+
 scalar String
 scalar Float
+scalar CaloriesPerGram
 
-type FloatParameter {
-  value: Float!
+enum Size {
+  SMALL
+  MEDIUM
+  LARGE
 }
 
-type Ingredient {
+# -------------------------------------------------
+# Basic Types
+# -------------------------------------------------
+
+type NutritionalInfo {
+  calories_per_gram: Float!
+  protein_grams: Float!
+  sugar_grams: Float!
+  fiber_grams: Float!
+}
+
+
+# -------------------------------------------------
+# Interfaces
+# -------------------------------------------------
+
+
+interface Ingredient {
   name: String!
-  calories_per_gram: FloatParameter!
+  calories_per_gram: Float
 }
+
+
+type Fruit implements Ingredient {
+  name: String!
+  calories_per_gram: Float!
+  sweetness: Float!
+}
+
+type Addon implements Ingredient {
+  name: String!
+  calories_per_gram: Float!
+  protein: Float!
+}
+
+# -------------------------------------------------
+# Unions
+# -------------------------------------------------
+
+union Blendable = Fruit | Addon
+
+# -------------------------------------------------
+# Main Types  
+# -------------------------------------------------
 
 type IngredientAmount {
-  ingredient: Ingredient!
-  grams: FloatParameter!
-  calories: FloatParameter! @compute(fn: "calcCalories")
+  ingredient: Blendable!
+  grams: Float!
+  calories: Float! @compute(fn: "calcCalories")
 }
 
 type Smoothie {
   name: String!
-  size: String!
+  size: Size!
   parts: [IngredientAmount!]!
 }
 
 type BananaStrawberrySmoothie {
   # Parameters ----------
-  size: String!
+  size: Size!
 
   # Expansion spec ------
   result: Smoothie!
@@ -43,16 +90,16 @@ type BananaStrawberrySmoothie {
         "size": "$size",
         "parts": [
           {
-            "ingredient": {"name": "Banana", "calories_per_gram": {"value": 0.89}},
-            "grams": {"value": 120}
+            "ingredient": {"name": "Banana", "calories_per_gram": 0.89, "sweetness": 8.5},
+            "grams": 120
           },
           {
-            "ingredient": {"name": "Strawberry", "calories_per_gram": {"value": 0.32}},
-            "grams": {"value": 80}
+            "ingredient": {"name": "Strawberry", "calories_per_gram": 0.32, "sweetness": 7.2},
+            "grams": 80
           },
           {
-            "ingredient": {"name": "Milk", "calories_per_gram": {"value": 0.64}},
-            "grams": {"value": 200}
+            "ingredient": {"name": "Protein Powder", "calories_per_gram": 4.0, "protein": 25.0},
+            "grams": 30
           }
         ]
       }

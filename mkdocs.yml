@@ -1,6 +1,6 @@
 site_name: GraphQL Codegen Documentation
 site_description: Progressive examples from basic types to advanced directives
-site_url: https://graphql-codegen.dev
+# site_url: https://graphql-codegen.dev
 
 theme:
   name: material
@@ -28,9 +28,6 @@ theme:
 
 plugins:
   - search
-  - include-markdown:
-      preserve_includer_indent: true
-      dedent: false
 
 markdown_extensions:
   - pymdownx.highlight:
@@ -38,7 +35,11 @@ markdown_extensions:
       line_spans: __span
       pygments_lang_class: true
   - pymdownx.inlinehilite
-  - pymdownx.snippets
+  - pymdownx.snippets:
+      check_paths: true
+      base_path:
+        - docs
+        - .
   - pymdownx.superfences
   - admonition
   - pymdownx.details
@@ -48,16 +49,12 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Examples:
-    - "01 - Basic Types": examples/01-basic-types.md
-    - "02 - Nested Objects": examples/02-nested-objects.md
-    - "03 - Compute Directive": examples/03-compute-directive.md
-    - "04 - Expand Directive": examples/04-expand-directive.md
-    - "05 - Complete Schema": examples/05-complete-schema.md
-  - Reference:
-    - CLI: reference/cli.md
-    - Configuration: reference/config.md
+    - "00 - Hello": examples/00-hello.md
+    - "01 - Interfaces & Unions": examples/01-interfaces-and-unions.md
+    - "02 - Compute Directive": examples/02-compute-directive.md
+    - "03 - Expand Directive": examples/03-expand-directive.md
 
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/your-org/graphql-codegen 
+      link: https://github.com/cadbuildr/graphql-codegen 

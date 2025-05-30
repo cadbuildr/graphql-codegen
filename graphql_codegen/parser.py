@@ -1,7 +1,7 @@
 """GraphQL schema parsing with directive extraction."""
 
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Union
+from typing import Dict, List, Any
 from pydantic import BaseModel
 from graphql import (
     build_schema,
@@ -10,7 +10,6 @@ from graphql import (
     GraphQLInterfaceType,
     GraphQLUnionType,
     GraphQLEnumType,
-    GraphQLField,
     GraphQLDirective,
 )
 from graphql.type.definition import (
@@ -19,7 +18,6 @@ from graphql.type.definition import (
     GraphQLList,
     GraphQLNonNull,
 )
-import json
 
 
 class DirectiveInfo(BaseModel):
@@ -98,7 +96,9 @@ def extract_type_name(graphql_type: GraphQLType) -> tuple[str, bool, bool]:
         if isinstance(graphql_type, GraphQLNonNull):
             graphql_type = graphql_type.of_type
 
-    return graphql_type.name, is_list, is_required
+    # Get name from GraphQL type - check if it has name attribute
+    name = getattr(graphql_type, "name", str(graphql_type))
+    return name, is_list, is_required
 
 
 def extract_directive_info(directives: List[GraphQLDirective]) -> List[DirectiveInfo]:
@@ -107,12 +107,14 @@ def extract_directive_info(directives: List[GraphQLDirective]) -> List[Directive
 
     for directive in directives:
         args = {}
-        for arg_name, arg_value in directive.arguments.items():
-            # Handle different argument types
-            if hasattr(arg_value, "value"):
-                args[arg_name] = arg_value.value
-            else:
-                args[arg_name] = str(arg_value)
+        # Check if directive has arguments attribute
+        if hasattr(directive, "arguments") and directive.arguments:
+            for arg_name, arg_value in directive.arguments.items():
+                # Handle different argument types
+                if hasattr(arg_value, "value"):
+                    args[arg_name] = arg_value.value
+                else:
+                    args[arg_name] = str(arg_value)
 
         directive_infos.append(DirectiveInfo(name=directive.name, args=args))
 
@@ -201,11 +203,11 @@ def parse_schema_info(schema: GraphQLSchema) -> SchemaInfo:
 
             types.append(
                 TypeInfo(
-                    name=type_name, 
-                    fields=fields, 
+                    name=type_name,
+                    fields=fields,
                     directives=type_directives,
                     kind="object",
-                    interfaces=interfaces
+                    interfaces=interfaces,
                 )
             )
 
@@ -270,11 +272,11 @@ def parse_schema_info(schema: GraphQLSchema) -> SchemaInfo:
 
             types.append(
                 TypeInfo(
-                    name=type_name, 
-                    fields=fields, 
+                    name=type_name,
+                    fields=fields,
                     directives=type_directives,
                     kind="interface",
-                    interfaces=interfaces
+                    interfaces=interfaces,
                 )
             )
 
@@ -309,7 +311,7 @@ def parse_schema_info(schema: GraphQLSchema) -> SchemaInfo:
                     fields=[],  # Unions don't have fields
                     directives=type_directives,
                     kind="union",
-                    union_types=union_types
+                    union_types=union_types,
                 )
             )
 
@@ -337,35 +339,34 @@ def load_and_parse_schema_with_config(schema_dir: Path, config) -> SchemaInfo:
         # Use regular schema file
         schema_path = schema_dir / "schema.graphql"
         schema = parse_schema_file(schema_path)
-    
+
     return parse_schema_info(schema)
 
 
 def extract_schema_lines(schema_path: Path, line_ranges: str) -> str:
     """Extract specific lines from a schema file based on line ranges.
-    
+
     Args:
         schema_path: Path to the schema file
         line_ranges: String like "1-10,15-20,25" specifying which lines to include
-    
+
     Returns:
         Extracted schema content as string
     """
-    with open(schema_path, 'r') as f:
+    with open(schema_path, "r") as f:
         lines = f.readlines()
-    
+
+    ranges = line_ranges.split(",")
+
     selected_lines = []
-    ranges = line_ranges.split(',')
-    
-    for range_spec in ranges:
-        range_spec = range_spec.strip()
-        if '-' in range_spec:
-            start, end = map(int, range_spec.split('-'))
+    for range_spec in (r.strip() for r in ranges):
+        if "-" in range_spec:
+            start, end = map(int, range_spec.split("-"))
             # Convert to 0-based indexing
-            selected_lines.extend(lines[start-1:end])
+            selected_lines.extend(lines[start - 1 : end])
         else:
             # Single line
             line_num = int(range_spec)
-            selected_lines.append(lines[line_num-1])
-    
-    return ''.join(selected_lines)
+            selected_lines.append(lines[line_num - 1])
+
+    return "".join(selected_lines)

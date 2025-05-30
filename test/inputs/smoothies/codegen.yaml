@@ -9,3 +9,5 @@ scalars:
   Int: int
   Float: float
   ID: str
+  # Custom scalars
+  CaloriesPerGram: float
