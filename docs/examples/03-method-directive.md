@@ -23,7 +23,7 @@ poetry run python -m graphql_codegen.cli . --stdout --flat
 ## 🐍 Generated Python
 
 ```python
---8<-- "docs/outputs/method.py"
+--8<-- "docs/outputs/method.py:153:"
 ```
 
 ## 🔍 Key Concepts

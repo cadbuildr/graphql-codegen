@@ -30,7 +30,6 @@ test/
 │   ├── smoothies/
 │   │   ├── schema.graphql     # GraphQL schema with @compute/@expand
 │   │   └── codegen.yaml       # Generation configuration
-│   ├── userpost/              # Additional test case
 │   └── minifound/             # Additional test case
 ├── outputs/                   # Generated packages (auto-created)
 │   └── smoothies/             # Generated package structure:

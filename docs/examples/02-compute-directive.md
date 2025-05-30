@@ -25,7 +25,7 @@ poetry run python -m graphql_codegen.cli . --stdout --flat
 ## 🐍 Generated Python
 
 ```python
---8<-- "docs/outputs/compute.py"
+--8<-- "docs/outputs/compute.py:153:"
 ```
 
 ## 🔍 Key Concepts

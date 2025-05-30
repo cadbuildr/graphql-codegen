@@ -8,124 +8,14 @@ from enum import Enum
 {{ import_line }}
 {%- endfor %}
 {%- endif %}
-import json
-import re
-from itertools import chain
 
 # Auto-generated helpers - inline for flat output
-_COMPUTE: Dict[str, Any] = {}
-_EXPAND_CUSTOM: Dict[str, Any] = {}
-_METHOD: Dict[str, Any] = {}
-
-_EXPR_RE = re.compile(r"^(?P<attr>\w+)(\[is (?P<type>\w+)\])?$")
-
-def _eval_expr(root, expr: str):
-    """
-    Very small path/-filter evaluator.
-      • Dot-separated steps (`a.b.c`)
-      • Optional filter   (`parts[is Fruit]`)
-    Returns either a single value or a list, depending on the path.
-    """
-    # NEW: Handle simple scalar values (for @default)
-    try:
-        # Try to parse as a simple number or string literal
-        if expr.replace('.', '').replace('-', '').isdigit() or expr.replace('.', '').replace('-', '').replace('e', '').replace('E', '').replace('+', '').isdigit():
-            return float(expr)
-        elif expr.startswith('"') and expr.endswith('"'):
-            return expr[1:-1]  # Remove quotes
-        elif expr.startswith("'") and expr.endswith("'"):
-            return expr[1:-1]  # Remove quotes
-    except:
-        pass
-    
-    # NEW: Handle complex expressions (for @static_method)
-    if '(' in expr and ')' in expr:
-        # This looks like a function call or constructor, use eval
-        try:
-            return eval(expr, root)
-        except:
-            pass
-    
-    # Original path evaluation logic
-    items: Iterable[Any] = [root]
-
-    for step in expr.split("."):
-        m = _EXPR_RE.match(step)
-        if not m:
-            raise ValueError(f"Invalid expr token: {step!r}")
-
-        attr, want_type = m["attr"], m["type"]
-        next_items = []
-        for it in items:
-            value = getattr(it, attr)
-            # NEW - lazy-fill a field whose value is None and carries @default metadata
-            if value is None:
-                try:
-                    value = it.compute(attr)   # will succeed for @default/@compute
-                except (ValueError, AttributeError):
-                    pass
-            seq = value if isinstance(value, list) else [value]
-
-            if want_type:
-                # Enhanced filtering: check if the object itself or its common nested properties match the type
-                filtered_seq = []
-                for x in seq:
-                    if x.__class__.__name__ == want_type:
-                        # Direct type match
-                        filtered_seq.append(x)
-                    elif hasattr(x, 'ingredient') and x.ingredient.__class__.__name__ == want_type:
-                        # Check if ingredient property matches the type (for IngredientAmount -> Fruit filtering)
-                        filtered_seq.append(x)
-                    # Could add more nested property checks here if needed
-                seq = filtered_seq
-
-            next_items.extend(seq)
-        items = next_items
-
-    # Flatten: if every element is a primitive, return list-or-scalar
-    if not items:
-        return []
-    if len(items) == 1:
-        return items[0]
-    return list(items)
+{% include "runtime_helpers.j2" %}
 
 {% if needs_computable_import or needs_expandable_import %}
 # Import mixins from auto module equivalent
 {% if needs_computable_import %}
-class Computable:
-    """Mixin for types with @compute fields."""
-    def compute(self, field_name: str) -> Any:
-        """Compute value for field with @compute directive."""
-        if not hasattr(self.__class__, "model_fields"):
-            raise TypeError(f"{self.__class__.__name__} is not a Pydantic model, cannot use Computable.")
-        fld = self.__class__.model_fields.get(field_name)
-        if not fld:
-            raise ValueError(f"Field '{field_name}' not found in model {self.__class__.__name__}.")
-        meta = fld.json_schema_extra or {}
-        
-        # Check for @compute directive first
-        compute_meta = meta.get("compute")
-        if compute_meta and isinstance(compute_meta, dict):
-            # NEW – expr support
-            if "expr" in compute_meta:
-                return _eval_expr(self, compute_meta["expr"])
-            
-            # Legacy fn path
-            fn_name = compute_meta.get("fn")
-            if not fn_name:
-                raise ValueError(f"Compute metadata for '{field_name}' is missing 'fn'.")
-            return _COMPUTE[fn_name](self, field_name, compute_meta)
-        
-        # NEW – Check for @default directive
-        default_meta = meta.get("default")
-        if default_meta and isinstance(default_meta, dict):
-            expr = default_meta.get("expr")
-            if expr:
-                return _eval_expr(globals(), expr)
-        
-        raise ValueError(
-            f"Field '{field_name}' in model {self.__class__.__name__} has no valid @compute or @default metadata."
-        )
+{% include "mixins.j2" %}
 {% endif %}
 
 {% if needs_expandable_import %}
@@ -137,30 +27,6 @@ class Expandable:
         return self
 {% endif %}
 {% endif %}
-
-# Registration functions
-def register_compute_fn(name: str):
-    def _wrap(fn):
-        _COMPUTE[name] = fn
-        return fn
-    return _wrap
-
-def register_method_fn(name: str):
-    def _wrap(fn):
-        _METHOD[name] = fn
-        return fn
-    return _wrap
-
-def run_method(inst, fn_name: str):
-    if fn_name not in _METHOD:
-        raise ValueError(f"Method fn '{fn_name}' not registered")
-    return _METHOD[fn_name](inst)
-
-def register_expand_fn(name: str):
-    def _wrap(fn):
-        _EXPAND_CUSTOM[name] = fn
-        return fn
-    return _wrap
 
 {{ render_enums(enums) }}
 

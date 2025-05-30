@@ -1,0 +1,111 @@
+{# Shared runtime helpers for GraphQL codegen #}
+import json
+import re
+from itertools import chain
+from typing import Any, Callable, Dict, Iterable
+
+_COMPUTE: Dict[str, Callable[[Any, str, dict], Any]] = {}
+_EXPAND_CUSTOM: Dict[str, Callable[[Any, dict], Any]] = {}
+_METHOD: Dict[str, Callable[[Any], Any]] = {}
+
+_EXPR_RE = re.compile(r"^(?P<attr>\w+)(\[is (?P<type>\w+)\])?$")
+
+def _eval_expr(root, expr: str):
+    """
+    Very small path/-filter evaluator.
+      • Dot-separated steps (`a.b.c`)
+      • Optional filter   (`parts[is Fruit]`)
+    Returns either a single value or a list, depending on the path.
+    """
+    # NEW: Handle simple scalar values (for @default)
+    try:
+        # Try to parse as a simple number or string literal
+        if expr.replace('.', '').replace('-', '').isdigit() or expr.replace('.', '').replace('-', '').replace('e', '').replace('E', '').replace('+', '').isdigit():
+            return float(expr)
+        elif expr.startswith('"') and expr.endswith('"'):
+            return expr[1:-1]  # Remove quotes
+        elif expr.startswith("'") and expr.endswith("'"):
+            return expr[1:-1]  # Remove quotes
+    except:
+        pass
+    
+    # NEW: Handle complex expressions (for @static_method)
+    if '(' in expr and ')' in expr:
+        # This looks like a function call or constructor, use eval
+        try:
+            return eval(expr, root)
+        except:
+            pass
+    
+    # Original path evaluation logic
+    items: Iterable[Any] = [root]
+
+    for step in expr.split("."):
+        m = _EXPR_RE.match(step)
+        if not m:
+            raise ValueError(f"Invalid expr token: {step!r}")
+
+        attr, want_type = m["attr"], m["type"]
+        next_items = []
+        for it in items:
+            value = getattr(it, attr)
+            # NEW - lazy-fill a field whose value is None and carries @default metadata
+            if value is None:
+                try:
+                    value = it.compute(attr)   # will succeed for @default/@compute
+                except (ValueError, AttributeError):
+                    pass
+            seq = value if isinstance(value, list) else [value]
+
+            if want_type:
+                # Enhanced filtering: check if the object itself or its common nested properties match the type
+                filtered_seq = []
+                for x in seq:
+                    if x.__class__.__name__ == want_type:
+                        # Direct type match
+                        filtered_seq.append(x)
+                    elif hasattr(x, 'ingredient') and x.ingredient.__class__.__name__ == want_type:
+                        # Check if ingredient property matches the type (for IngredientAmount -> Fruit filtering)
+                        filtered_seq.append(x)
+                    # Could add more nested property checks here if needed
+                seq = filtered_seq
+
+            next_items.extend(seq)
+        items = next_items
+
+    # Flatten: if every element is a primitive, return list-or-scalar
+    if not items:
+        return []
+    if len(items) == 1:
+        return items[0]
+    return list(items)
+
+# Registration functions
+def register_compute_fn(name: str):
+    def _wrap(fn):
+        _COMPUTE[name] = fn
+        return fn
+    return _wrap
+
+def register_method_fn(name: str):
+    def _wrap(fn):
+        _METHOD[name] = fn
+        return fn
+    return _wrap
+
+def run_method(inst, fn_name: str):
+    if fn_name not in _METHOD:
+        raise ValueError(f"Method fn '{fn_name}' not registered")
+    return _METHOD[fn_name](inst)
+
+def register_expand_fn(name: str):
+    def _wrap(fn):
+        _EXPAND_CUSTOM[name] = fn
+        return fn
+    return _wrap
+
+def run_compute(inst, field_name: str, meta: dict):
+    fn_name = meta.get("fn")
+    if not fn_name or fn_name not in _COMPUTE:
+        raise ValueError(f"Compute function '{fn_name}' not registered for field '{field_name}'.")
+    return _COMPUTE[fn_name](inst, field_name, meta) 

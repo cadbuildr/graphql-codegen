@@ -23,7 +23,7 @@ graphql-codegen . --stdout --flat
 ## 🐍 Generated Python
 
 ```python
---8<-- "docs/outputs/interfaces_and_unions.py"
+--8<-- "docs/outputs/interfaces_and_unions.py:113:"
 ```
 
 ## 🔍 Key Concepts

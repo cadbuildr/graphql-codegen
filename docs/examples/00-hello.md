@@ -62,7 +62,7 @@ graphql-codegen . --stdout --flat
 
 
 ```python
---8<-- "docs/outputs/hello.py"
+--8<-- "docs/outputs/hello.py:113:"
 ```
 
 **Let's decode this :**
