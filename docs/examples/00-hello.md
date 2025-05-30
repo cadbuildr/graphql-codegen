@@ -62,7 +62,7 @@ graphql-codegen . --stdout --flat
 
 
 ```python
---8<-- "docs/outputs/scalars_enums.py"
+--8<-- "docs/outputs/hello.py"
 ```
 
 **Let's decode this :**
